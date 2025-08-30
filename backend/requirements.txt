@@ -2,7 +2,9 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 sqlalchemy[asyncio]==2.0.23
 psycopg2-binary==2.9.7
-asyncpg==0.28.0
+# asyncpg==0.28.0  # 不支援 Python 3.13
+# asyncpg==0.29.0  # 可能仍有問題
+# 使用 psycopg2 替代 asyncpg
 alembic==1.12.0
 greenlet==3.2.4
 pydantic==2.5.0
