@@ -8,6 +8,7 @@ description = "Line Assistant with Frontend and Backend"
 name = "line-assistant-app"
 plan = "free"
 source = "."
+builder = "nixpacks"
 buildCommand = "cd backend && pip install -r requirements.txt && cd ../frontend && npm install && npm run build"
 startCommand = "cd backend && python run.py"
 ports = [8000]
@@ -20,26 +21,7 @@ name = "line-assistant-db"
 plan = "free"
 type = "postgresql"
 
-# 環境變數配置
+# 環境變數配置（只包含非敏感資訊）
 [services.app.envs]
 # 資料庫連接（連接到 Zeabur PostgreSQL）
-DATABASE_URL = "postgresql://root:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-# 安全設定
-SECRET_KEY = "your-secret-key-change-in-production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = "30"
-# Google Drive 設定
-GOOGLE_CREDENTIALS_JSON = "{\"type\":\"service_account\",\"project_id\":\"ethereal-yen-464007-h0\",\"private_key_id\":\"52a4869fd03bbc0089473c2f11f40bfc7e160047\",\"private_key\":\"-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCRuu1011CGgJRH\\nPUUWRECkwGbaStPwMTRUyZGq4aSuZ5auGM7lUuw8Jtc9xrIO8FZ6kMcXEKB3J6rZ\\nXYsuK6COvUqFglPrXs332A5JpFXWYz+T/Wm4nQF3wU8snj+YZQM+yptNUb0xhMsJ\\njTSKdd/3S24rSxlcJf67JnEm0nkFHq+i7JfXz73aE/ELVz8hzb5lBHmnTdAX+63j\\nawGNsN26skJ3MPeFPn2rZB9CVCQTgTcdKA7ig856Vf/fqloI8kGFl3yhgZzWDVf1\\nhd5Fj31/ikrZP79x6yEotKONDqydX1X+anYMofXk0FRXV92B/Yrhw3uMsdOB486Y\\nNTVqbPvJAgMBAAECggEAAw/bZ2YSwhC3jNujtPkQJqYIQzPpShWulM17awy8qhFx\\nIA1TY4wffJAQW7LuENRJ7N9X34sw4/AIbfLCNuEhyX3+r9lyK/Lc/wUiH7f9Objy\\nIAjmDMP3wO1l3XkhuvD8ZXhaVQCPqhexMG0wGmypnQePtAcq7D28IXCIVhl8A3h+\\neFmGnYv+wbZmwa1V5RGMd7JZRVMKoX/3dEGJdVwfrMSAnuNapwyxhwHl8eU/07uB\\n7wjtS7wCAOUxaVEgdPUuCuGZEJKLytfWwhFq3eFj0gyswU8gsytGSpxmPu59ltul\\nXpH75D+Qp2CN+U76N/BUe9o1T5fPyDs4MjL1NAQkFQKBgQDB68y7TdvRbTtNUg4S\\nbYLxetBecIKFk7QQumVbxu/ON2AVrl3m2PP8Wc8DyEhl7GKr3MqWweitIhXjiOuN\\njMQKOr67xNDlKM3bpQ3MBML0yAjeUYt9mRgKqEoklrmQVZDP0N6ci12ktjSbWbRG\\nJoOMFFxcRBdP5yIgoi82bl/clwKBgQDAYcq4dWOZkCPYsaV3XZM0yzDEFRYJKUIL\\njNuvRuy+SjaWftYgB1LDjwo9iXC+hyxdC2gBNP/xZckSBNgf8Y7jzonv3bE1GDcx\\nmGJU8J+ZXf12koI+0TT6Q64xv1oIglM4/Ac1fOfv9g1vZTNjgO29U9+/k4DJ3vxZ\\nG4yFZ0IWnwKBgGvZGCOTSY1PkouN9wWIoipqgzgCmpRvcNVc1MIWAYhOg8GLF+4q\\n+oZ97APOf3Uv4jByurjdXunq6wGARICUqPKHeUw0SXkpGFPvl5y/iS1ZkpUSBOH1\\nIsnKjnGK4ejDraXmI+gsGghgzSEY4omhIcfmCvfFZrGpefFsQZWkDOxBAoGBAIK8\\nsmAiXlpIayPirbjtnZE+GFjYn44APMLOqah2wYIbuvcRIQDJGUSOm33wPe8su0hL\\n7RUM6HYrHrahFiK3LMzBWlnoxXl4iGGq1gA1ObCnAA2pSNvZnnAIuINUL6Iitt29\\n4ERIKvKWutCd7ItNXcLREfgGDHqjj8gagadS4cWvAoGAJRkJY72uoXNls07P8Jab\\nl0+/5o3SyqOQhdVSZoqkdTHE67Hg6QepzhqRRGINTH13KNmlSj+0mlz9dVrR+pxr\\ni3T2YPXafC3C0vOEi5uuSaJ6HbzM8KqFG6R0wu6CCAwh0mtSgln58yHpwfTVTf+U\\nLGNnNZFh12eWher8OZFB/s4=\\n-----END PRIVATE KEY-----\\n\",\"client_email\":\"bearwin@ethereal-yen-464007-h0.iam.gserviceaccount.com\",\"client_id\":\"106412634243721044302\",\"auth_uri\":\"https://accounts.google.com/o/oauth2/auth\",\"token_uri\":\"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\":\"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\":\"https://www.googleapis.com/robot/v1/metadata/x509/bearwin%40ethereal-yen-464007-h0.iam.gserviceaccount.com\",\"universe_domain\":\"googleapis.com\"}"
-GOOGLE_DRIVE_FOLDER_ID = "1MnergQxr7dDxqqQPwLBNC6pHq35smqRd"
-# LINE Bot 設定
-LINE_CHANNEL_ID = "2008019986"
-LINE_CHANNEL_SECRET = "13adcc0df62c107fb3a72d0a03cb2666"
-LINE_CHANNEL_ACCESS_TOKEN = "9vTWVEtCxu/MLRrAm6fBAol9vM/6hUnc6Hx9OoQR0XS/9V3+3xgrndK05a421vYThpAm9mO+GGry9DXTawiPVr8w/tvaKYZ/Qajrnt//ZlvAqYZXX45uxeCMff5Ne1FrgCVC8R+qX6SSwkqjGJw8dgdB04t89/1O/w1cDnyilFU="
-# OpenAI 設定
-OPENAI_API_KEY = "your-openai-api-key"
-
-# 資料庫服務環境變數
-[services.db.envs]
-POSTGRES_DB = "line_assistant"
-POSTGRES_USER = "root"
-POSTGRES_PASSWORD = "zeabur_secure_password_2025"
+DATABASE_URL = "${POSTGRES_CONNECTION_STRING}"

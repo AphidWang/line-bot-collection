@@ -76,3 +76,8 @@ docs/
 deploy-*.sh
 Dockerfile
 .dockerignore
+
+# 環境變數檔案
+.env
+.env.*
+env.zeabur.template
