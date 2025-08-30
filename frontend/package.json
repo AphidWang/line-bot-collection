@@ -32,5 +32,8 @@
   },
   "overrides": {
     "undici": "5.28.3"
+  },
+  "resolutions": {
+    "undici": "5.28.3"
   }
 }

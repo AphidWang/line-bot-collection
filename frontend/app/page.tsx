@@ -41,7 +41,7 @@ export default function Home() {
     // 檢查 Firebase 是否可用
     const checkFirebase = async () => {
       const enabled = isFirebaseEnabled();
-      setFirebaseEnabled(enabled);
+      setFirebaseEnabled(!!enabled);
       
       if (enabled && auth) {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
