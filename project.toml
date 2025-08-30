@@ -6,6 +6,10 @@
   [[build.buildpacks]]
     id = "heroku/nodejs"
     version = "0.1.0"
+    env = [
+      "NODE_ENV=production",
+      "NPM_CONFIG_PRODUCTION=false"
+    ]
 
 [metadata]
   [metadata.buildpacks]
