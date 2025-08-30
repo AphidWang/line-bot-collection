@@ -81,3 +81,7 @@ Dockerfile
 .env
 .env.*
 env.zeabur.template
+
+# 保留這些重要配置文件
+!.zeaburrc
+!nixpacks.toml
