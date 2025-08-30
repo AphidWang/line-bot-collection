@@ -13,6 +13,15 @@ const nextConfig = {
     config.externals = config.externals || []
     config.externals.push('undici')
     
+    // 添加路徑解析
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': '.',
+      '@/lib': './lib',
+      '@/app': './app',
+      '@/components': './app/components'
+    }
+    
     return config
   },
 }
