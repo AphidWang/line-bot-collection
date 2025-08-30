@@ -28,6 +28,8 @@ DATABASE_URL = "${POSTGRES_CONNECTION_STRING}"
 # 強制使用 buildpacks 構建器
 ZBUILDER = "buildpacks"
 BUILDER = "buildpacks"
+# 指定 Python 版本
+PYTHON_VERSION = "3.11"
 
 # 強制構建器設定
 [services.app.build]
