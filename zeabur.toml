@@ -25,3 +25,7 @@ type = "postgresql"
 [services.app.envs]
 # 資料庫連接（連接到 Zeabur PostgreSQL）
 DATABASE_URL = "${POSTGRES_CONNECTION_STRING}"
+
+# 強制構建器設定
+[services.app.build]
+builder = "nixpacks"
