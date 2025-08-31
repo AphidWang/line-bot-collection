@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Firebase auth
+  firebaseUid String? @unique
+
+  // Relations
+  userChannels UserChannel[]
+  summaries    Summary[]
+  messages     Message[]
+
+  @@map("users")
+}
+
+model Channel {
+  id          String   @id @default(cuid())
+  lineId      String   @unique // Line channel ID
+  name        String
+  pictureUrl  String?
+  status      String   @default("active") // active, inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userChannels UserChannel[]
+  messages     Message[]
+  summaries    Summary[]
+
+  @@map("channels")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  lineId    String   @unique // Line message ID
+  channelId String
+  userId    String   // Line user ID
+  userName  String?
+  userAvatar String?
+  type      String   // text, image, video, audio, file, location, sticker
+  content   String   // For text messages, or file URL for media
+  metadata  Json?    // Additional message data
+  timestamp DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User?  @relation(fields: [userId], references: [id])
+
+  @@map("messages")
+}
+
+model UserChannel {
+  id        String   @id @default(cuid())
+  userId    String
+  channelId String
+  isTracked Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@map("user_channels")
+}
+
+model Summary {
+  id        String   @id @default(cuid())
+  userId    String
+  channelId String?
+  date      DateTime @db.Date // Summary date
+  content   String   // AI generated summary
+  tokens    Int      // Token count used
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId, date])
+  @@map("summaries")
+}
+
+// Indexes for better performance
+// Note: _prisma_migrations table is managed automatically by Prisma
