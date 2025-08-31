@@ -8,7 +8,7 @@ description = "Line Assistant with Frontend and Backend"
 name = "line-assistant-app"
 plan = "free"
 source = "."
-builder = "dockerfile"
+builder = "nixpacks"
 ports = [8000]
 healthcheckPath = "/health"
 healthcheckTimeout = 300
@@ -23,3 +23,5 @@ type = "postgresql"
 [services.app.envs]
 # 資料庫連接（連接到 Zeabur PostgreSQL）
 DATABASE_URL = "${POSTGRES_CONNECTION_STRING}"
+# 強制使用 Python 3.11
+PYTHON_VERSION = "3.11.7"
