@@ -1,4 +1,0 @@
-# Zeabur 配置文件
-# 強制使用 buildpacks 構建器
-ZBUILDER=buildpacks
-BUILDER=buildpacks

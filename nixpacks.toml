@@ -18,3 +18,11 @@ cmd = "cd backend && python run.py"
 [variables]
 PYTHON_VERSION = "3.11.7"
 PYTHONPATH = "/nix/store/*/lib/python3.11/site-packages"
+
+# 強制使用 Python 3.11
+[phases.setup]
+cmds = [
+  "ln -sf /nix/store/*/bin/python3.11 /usr/local/bin/python",
+  "ln -sf /nix/store/*/bin/python3.11 /usr/local/bin/python3",
+  "ln -sf /nix/store/*/bin/python3.11 /usr/local/bin/python3.11"
+]
