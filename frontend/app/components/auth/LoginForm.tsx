@@ -7,6 +7,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { MessageSquare, Github, Mail, Lock } from 'lucide-react';
+import { authAPI } from '@/app/lib/api';
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -44,25 +45,13 @@ export default function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // 儲存 token 並重導向到 dashboard
-        localStorage.setItem('access_token', data.access_token);
-        window.location.reload();
-      } else {
-        alert('登入失敗，請檢查帳號密碼');
-      }
+      const data = await authAPI.login(email, password);
+      // 儲存 token 並重導向到 dashboard
+      localStorage.setItem('access_token', data.access_token);
+      window.location.reload();
     } catch (error) {
       console.error('Login error:', error);
-      alert('登入失敗，請稍後再試');
+      alert('登入失敗，請檢查帳號密碼');
     } finally {
       setIsLoading(false);
     }
