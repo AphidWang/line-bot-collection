@@ -6,7 +6,7 @@ sqlalchemy[asyncio]==2.0.23
 asyncpg==0.28.0  # 支援 Python 3.11
 alembic==1.12.0
 greenlet==3.2.4
-pydantic==2.5.0
+pydantic==2.4.2  # 降級到穩定版本
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
