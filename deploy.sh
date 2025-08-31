@@ -28,7 +28,7 @@ show_help() {
     echo -e "${BLUE}Commands:${NC}"
     echo "  local       - 本地開發環境"
     echo "  docker      - Docker 容器部署"
-    echo "  build       - 建置 Docker 映像"
+    echo "  build       - 建置專案"
     echo "  clean       - 清理建置檔案"
     echo "  test        - 執行 API 測試"
     echo "  help        - 顯示此說明"
@@ -36,7 +36,7 @@ show_help() {
     echo -e "${BLUE}Examples:${NC}"
     echo "  $0 local              # 啟動本地開發環境"
     echo "  $0 docker             # 啟動 Docker 容器"
-    echo "  $0 build              # 建置 Docker 映像"
+    echo "  $0 build              # 建置專案"
     echo "  $0 test               # 測試 API"
 }
 
@@ -125,26 +125,27 @@ deploy_docker() {
     echo "  docker-compose restart   # 重啟服務"
 }
 
-# 函數：建置 Docker 映像
-build_docker() {
-    echo -e "${BLUE}🔨 Building Docker images...${NC}"
+# 函數：建置專案
+build_project() {
+    echo -e "${BLUE}🔨 Building project...${NC}"
     
     # 建置後端
-    echo "Building backend image..."
-    cd backend
-    docker build -t ${PROJECT_NAME}-backend .
-    cd ..
+    if [ -d "backend" ]; then
+        echo "Building backend..."
+        cd backend
+        npm run build
+        cd ..
+    fi
     
     # 建置前端
-    echo "Building frontend image..."
-    cd frontend
-    docker build -t ${PROJECT_NAME}-frontend .
-    cd ..
+    if [ -d "frontend" ]; then
+        echo "Building frontend..."
+        cd frontend
+        npm run build
+        cd ..
+    fi
     
-    echo -e "${GREEN}✅ Docker images built successfully!${NC}"
-    echo "Images:"
-    echo "  - ${PROJECT_NAME}-backend"
-    echo "  - ${PROJECT_NAME}-frontend"
+    echo -e "${GREEN}✅ Project built successfully!${NC}"
 }
 
 # 函數：清理建置檔案
@@ -247,7 +248,7 @@ main() {
             deploy_docker
             ;;
         build)
-            build_docker
+            build_project
             ;;
         clean)
             clean_build

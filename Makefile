@@ -18,8 +18,8 @@ help:
 	@echo "  make dev       - 啟動完整開發環境（前後端）"
 	@echo "  make backend   - 只啟動後端"
 	@echo "  make frontend  - 只啟動前端"
-	@echo "  make docker    - Docker 容器部署"
-	@echo "  make build     - 建置 Docker 映像"
+	@echo "  make docker    - Docker 容器部署（可選）"
+	@echo "  make build     - 建置專案"
 	@echo "  make clean     - 清理建置檔案"
 	@echo "  make test      - 執行 API 測試"
 	@echo "  make help      - 顯示此說明"
@@ -71,10 +71,18 @@ docker: install
 	@echo "🐳 Starting Docker deployment..."
 	@./deploy.sh docker
 
-# 建置 Docker 映像
+# 建置專案
 build: install
-	@echo "🔨 Building Docker images..."
-	@./deploy.sh build
+	@echo "🔨 Building project..."
+	@if [ -d "backend" ]; then \
+		echo "Building backend..."; \
+		cd backend && npm run build; \
+	fi
+	@if [ -d "frontend" ]; then \
+		echo "Building frontend..."; \
+		cd frontend && npm run build; \
+	fi
+	@echo "✅ Project built successfully"
 
 # 清理建置檔案
 clean:
