@@ -58,7 +58,7 @@ setup_environment() {
         
         echo -e "${GREEN}✅ .env file created${NC}"
         echo -e "${YELLOW}📝 Please edit .env file with your configuration:${NC}"
-        echo "   - DATABASE_URL (required)"
+        echo "   - POSTGRES_CONNECTION_STRING (required)"
         echo "   - JWT_SECRET (required)"
         echo "   - Optional: FIREBASE_*, OPENAI_API_KEY, LINE_*"
         echo ""
@@ -102,7 +102,7 @@ setup_prisma() {
         echo -e "${GREEN}✅ Database setup successful${NC}"
     else
         echo -e "${RED}❌ Database setup failed${NC}"
-        echo "Please check your DATABASE_URL in .env file"
+        echo "Please check your POSTGRES_CONNECTION_STRING in .env file"
         exit 1
     fi
 }

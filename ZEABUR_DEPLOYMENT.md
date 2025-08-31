@@ -15,7 +15,7 @@
 1. 點擊 "New Service"
 2. 選擇 "PostgreSQL"
 3. 等待部署完成
-4. 複製 `DATABASE_URL` 連線字串
+4. 複製 `POSTGRES_CONNECTION_STRING` 連線字串
 
 #### 2.2 後端服務 (Backend)
 1. 點擊 "New Service"
@@ -28,7 +28,7 @@
 # 複製 backend/.env.example 的內容並填入實際值
 PORT=3001
 NODE_ENV=production
-DATABASE_URL=你的_POSTGRESQL_DATABASE_URL
+POSTGRES_CONNECTION_STRING=你的_POSTGRESQL_CONNECTION_STRING
 JWT_SECRET=你的_JWT_SECRET
 # ... 其他必要的環境變數
 ```
@@ -54,7 +54,7 @@ NEXT_PUBLIC_API_URL=https://你的後端服務URL.zeabur.app
 |---------|------|--------|
 | `PORT` | 服務埠號 | `3001` |
 | `NODE_ENV` | 環境模式 | `production` |
-| `DATABASE_URL` | PostgreSQL 連線字串 | 從資料庫服務複製 |
+| `POSTGRES_CONNECTION_STRING` | PostgreSQL 連線字串 | 從資料庫服務複製 |
 | `JWT_SECRET` | JWT 簽名密鑰 | 生成強密碼 |
 | `CORS_ORIGIN` | 允許的前端域名 | `https://你的前端服務.zeabur.app` |
 
@@ -77,7 +77,7 @@ NEXT_PUBLIC_API_URL=https://你的後端服務URL.zeabur.app
 
 ### 5. 部署檢查清單
 
-- [ ] PostgreSQL 資料庫已部署並獲取 `DATABASE_URL`
+- [ ] PostgreSQL 資料庫已部署並獲取 `POSTGRES_CONNECTION_STRING`
 - [ ] 後端服務已部署並設定所有環境變數
 - [ ] 前端服務已部署並設定 `NEXT_PUBLIC_API_URL`
 - [ ] `CORS_ORIGIN` 已設定為前端服務域名

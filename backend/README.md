@@ -46,7 +46,7 @@ cp .env.example .env
 3. 設定環境變數
 ```bash
 # 必要設定
-DATABASE_URL="postgresql://username:password@localhost:5432/line_assistant"
+POSTGRES_CONNECTION_STRING="postgresql://username:password@localhost:5432/line_assistant"
 JWT_SECRET="your-super-secret-jwt-key-here"
 
 # 可選設定
@@ -161,7 +161,7 @@ npm run test          # 執行測試
 | 變數 | 說明 | 必要 |
 |------|------|------|
 | `PORT` | 服務埠號 | ❌ (預設: 3001) |
-| `DATABASE_URL` | PostgreSQL 連線字串 | ✅ |
+| `POSTGRES_CONNECTION_STRING` | PostgreSQL 連線字串 | ✅ |
 | `JWT_SECRET` | JWT 簽名金鑰 | ✅ |
 | `JWT_EXPIRES_IN` | JWT 過期時間 | ❌ (預設: 7d) |
 | `FIREBASE_PROJECT_ID` | Firebase 專案 ID | ❌ |

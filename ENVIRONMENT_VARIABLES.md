@@ -19,7 +19,7 @@ Line Assistant 專案需要配置環境變數來支援不同的功能和部署�
 |---------|------|--------|
 | `PORT` | 服務埠號 | `3001` |
 | `NODE_ENV` | 環境模式 | `production` |
-| `DATABASE_URL` | PostgreSQL 連線字串 | `postgresql://user:pass@host:port/db` |
+| `POSTGRES_CONNECTION_STRING` | PostgreSQL 連線字串 | `postgresql://user:pass@host:port/db` |
 | `JWT_SECRET` | JWT 簽名密鑰 | `your-super-secret-key` |
 
 ### 可選變數
@@ -115,7 +115,7 @@ Line Assistant 專案需要配置環境變數來支援不同的功能和部署�
 
 在 Zeabur PostgreSQL 服務中：
 - 自動生成資料庫連線字串
-- 複製到後端服務的 `DATABASE_URL`
+- 複製到後端服務的 `POSTGRES_CONNECTION_STRING`
 
 ### 4. 域名配置
 
@@ -148,7 +148,7 @@ Line Assistant 專案需要配置環境變數來支援不同的功能和部署�
 
 1. **CORS 錯誤**：檢查 `CORS_ORIGIN` 設定
 2. **API 連線失敗**：檢查 `NEXT_PUBLIC_API_URL` 設定
-3. **資料庫連線失敗**：檢查 `DATABASE_URL` 設定
+3. **資料庫連線失敗**：檢查 `POSTGRES_CONNECTION_STRING` 設定
 4. **認證失敗**：檢查 JWT 和 Firebase 配置
 
 ### 測試命令
