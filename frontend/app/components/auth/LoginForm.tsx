@@ -7,7 +7,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { MessageSquare, Github, Mail, Lock } from 'lucide-react';
-import { authAPI } from '@/app/lib/api';
+import { authAPI } from '@/lib/api';
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
