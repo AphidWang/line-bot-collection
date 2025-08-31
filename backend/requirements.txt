@@ -3,10 +3,10 @@ uvicorn[standard]==0.24.0
 sqlalchemy[asyncio]==2.0.23
 # psycopg2-binary==2.9.7  # 不支援異步
 # psycopg2cffi==2.9.0  # 不支援異步
-asyncpg==0.28.0  # 支援 Python 3.11
+asyncpg==0.29.0  # 升級到支援 Python 3.11+ 的版本
 alembic==1.12.0
 greenlet==3.2.4
-pydantic==2.4.2  # 降級到穩定版本
+pydantic==2.5.3  # 升級到更穩定的版本
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0

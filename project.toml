@@ -2,6 +2,9 @@
   [[build.buildpacks]]
     id = "heroku/python"
     version = "0.1.0"
+    env = [
+      "PYTHON_VERSION=3.11.7"
+    ]
   
   [[build.buildpacks]]
     id = "heroku/nodejs"
@@ -14,7 +17,7 @@
 [metadata]
   [metadata.buildpacks]
     [metadata.buildpacks.python]
-      version = "3.12"
+      version = "3.11.7"
     
     [metadata.buildpacks.nodejs]
       version = "20"
