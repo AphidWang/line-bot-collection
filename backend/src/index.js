@@ -65,7 +65,18 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  try {
+    // 執行資料庫遷移
+    const { execSync } = require('child_process');
+    console.log('🗄️ Running database migrations...');
+    execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+    console.log('✅ Migrations completed');
+  } catch (error) {
+    console.error('⚠️ Migration failed:', error.message);
+    console.log('ℹ️ Continuing with server startup...');
+  }
+  
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
