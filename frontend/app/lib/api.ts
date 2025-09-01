@@ -9,6 +9,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 console.log('🔧 API Configuration Debug:');
 console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
 console.log('API_BASE_URL:', API_BASE_URL);
+console.log('LOGIN URL:', `${API_BASE_URL}/api/auth/login`);
 
 // API 端點
 export const API_ENDPOINTS = {
@@ -100,6 +101,8 @@ export const apiRequest = async (
 export const authAPI = {
   // 帳密登入
   login: async (email: string, password: string) => {
+    console.log('🔧 Login Debug:');
+    console.log('API_ENDPOINTS.AUTH.LOGIN:', API_ENDPOINTS.AUTH.LOGIN);
     const response = await apiRequest(API_ENDPOINTS.AUTH.LOGIN, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
