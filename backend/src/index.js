@@ -5,6 +5,12 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+// 檢查必要的環境變數
+if (!process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET environment variable is required');
+  process.exit(1);
+}
+
 const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
 
@@ -18,6 +24,9 @@ const lineWebhookRoutes = require('./routes/lineWebhook');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// 設定 trust proxy (在 Zeabur 等反向代理環境中需要)
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
