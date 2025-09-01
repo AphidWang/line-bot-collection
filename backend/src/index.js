@@ -61,6 +61,21 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Root path
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Line Assistant API',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Favicon
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end(); // No content
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
@@ -88,7 +103,7 @@ app.listen(PORT, async () => {
   
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔗 Health check: /health`);
 });
 
 module.exports = app;
