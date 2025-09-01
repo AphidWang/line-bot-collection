@@ -5,6 +5,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
       : `https://${process.env.NEXT_PUBLIC_API_URL}`)
   : 'http://localhost:3001';
 
+// 調試資訊
+console.log('🔧 API Configuration Debug:');
+console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // API 端點
 export const API_ENDPOINTS = {
   // 認證相關
