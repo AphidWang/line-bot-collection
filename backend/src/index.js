@@ -34,7 +34,7 @@ app.use(helmet());
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
+    ? ['https://bot-collection.zeabur.app'] 
     : ['http://localhost:3000'],
   credentials: true
 }));
