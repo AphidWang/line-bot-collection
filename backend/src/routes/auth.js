@@ -67,8 +67,8 @@ router.post('/register', validateRegistration, async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key',
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_MINUTES ? `${process.env.ACCESS_TOKEN_EXPIRE_MINUTES}m` : '7d' }
     );
 
     res.status(201).json({
@@ -122,8 +122,8 @@ router.post('/login', validateLogin, async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key',
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_MINUTES ? `${process.env.ACCESS_TOKEN_EXPIRE_MINUTES}m` : '7d' }
     );
 
     res.json({
@@ -195,8 +195,8 @@ router.post('/firebase', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key',
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_MINUTES ? `${process.env.ACCESS_TOKEN_EXPIRE_MINUTES}m` : '7d' }
     );
 
     res.json({
@@ -225,7 +225,7 @@ router.get('/profile', async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key');
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
