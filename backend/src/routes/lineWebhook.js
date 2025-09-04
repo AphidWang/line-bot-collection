@@ -16,11 +16,17 @@ const verifySignature = (req, res, next) => {
     });
   }
 
+  // Get raw body for signature verification
   const body = JSON.stringify(req.body);
   const hash = crypto
     .createHmac('SHA256', channelSecret)
     .update(body)
     .digest('base64');
+
+  console.log('🔍 Signature verification debug:');
+  console.log('Expected signature:', signature);
+  console.log('Calculated hash:', hash);
+  console.log('Body:', body);
 
   if (signature !== hash) {
     return res.status(401).json({
