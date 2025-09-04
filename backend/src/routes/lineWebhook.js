@@ -38,8 +38,8 @@ const verifySignature = (req, res, next) => {
   next();
 };
 
-// Line webhook endpoint (temporarily disabled signature verification for testing)
-router.post('/webhook', async (req, res) => {
+// Line webhook endpoint
+router.post('/webhook', verifySignature, async (req, res) => {
   try {
     const { events } = req.body;
 
