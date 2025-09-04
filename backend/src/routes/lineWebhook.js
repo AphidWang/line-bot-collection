@@ -39,7 +39,7 @@ const verifySignature = (req, res, next) => {
 };
 
 // Line webhook endpoint
-router.post('/webhook', verifySignature, async (req, res) => {
+router.post('/webhook', async (req, res) => {
   try {
     const { events } = req.body;
 
