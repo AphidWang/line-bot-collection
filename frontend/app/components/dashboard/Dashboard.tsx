@@ -93,15 +93,26 @@ export default function Dashboard() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/messages/raw', {
+      const response = await fetch('https://lucentis.zeabur.app/api/messages', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (response.ok) {
         const data = await response.json();
-        setMessages(data);
+        // 轉換 API 回應格式到組件期望的格式
+        const formattedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          group_id: msg.channel?.name || msg.channelId,
+          user_id: msg.user?.name || msg.userId,
+          timestamp: msg.timestamp,
+          message: msg.content
+        }));
+        setMessages(formattedMessages);
+      } else {
+        console.error('Failed to fetch messages:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error);
