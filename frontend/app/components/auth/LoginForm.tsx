@@ -46,8 +46,9 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       const data = await authAPI.login(email, password);
-      // 儲存 token 並重導向到 dashboard
+      // 儲存 token 和用戶資料
       localStorage.setItem('access_token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       window.location.reload();
     } catch (error) {
       console.error('Login error:', error);

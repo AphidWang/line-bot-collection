@@ -68,7 +68,7 @@ router.post('/register', validateRegistration, async (req, res) => {
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key',
-      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_MINUTES ? `${process.env.ACCESS_TOKEN_EXPIRE_MINUTES}m` : '7d' }
+      { expiresIn: '7d' }
     );
 
     res.status(201).json({
@@ -123,7 +123,7 @@ router.post('/login', validateLogin, async (req, res) => {
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key',
-      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_MINUTES ? `${process.env.ACCESS_TOKEN_EXPIRE_MINUTES}m` : '7d' }
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -196,7 +196,7 @@ router.post('/firebase', async (req, res) => {
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key',
-      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_MINUTES ? `${process.env.ACCESS_TOKEN_EXPIRE_MINUTES}m` : '7d' }
+      { expiresIn: '7d' }
     );
 
     res.json({

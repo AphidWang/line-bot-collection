@@ -64,6 +64,24 @@ export const API_ENDPOINTS = {
   HEALTH: `${API_BASE_URL}/health`,
 };
 
+// 檢查 token 是否有效
+const isTokenValid = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp > now;
+  } catch {
+    return false;
+  }
+};
+
+// 自動登出函數
+const logout = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('user');
+  window.location.href = '/';
+};
+
 // API 請求工具函數
 export const apiRequest = async (
   url: string,
@@ -80,6 +98,13 @@ export const apiRequest = async (
   // 添加認證 token
   const token = localStorage.getItem('access_token');
   if (token) {
+    // 檢查 token 是否有效
+    if (!isTokenValid(token)) {
+      console.log('Token expired, logging out...');
+      logout();
+      throw new Error('Token expired');
+    }
+    
     defaultOptions.headers = {
       ...defaultOptions.headers,
       'Authorization': `Bearer ${token}`,
@@ -90,8 +115,9 @@ export const apiRequest = async (
   
   // 處理認證錯誤
   if (response.status === 401) {
-    localStorage.removeItem('access_token');
-    window.location.reload();
+    console.log('Unauthorized, logging out...');
+    logout();
+    throw new Error('Unauthorized');
   }
   
   return response;

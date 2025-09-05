@@ -16,23 +16,28 @@ export default function Home() {
     // 檢查 JWT token
     const checkJwtToken = () => {
       const token = localStorage.getItem('access_token');
-      if (token) {
+      const userData = localStorage.getItem('user');
+      
+      if (token && userData) {
         try {
           // 簡單的 JWT 解碼（只取 payload 部分）
           const payload = JSON.parse(atob(token.split('.')[1]));
           if (payload.exp * 1000 > Date.now()) {
+            const user = JSON.parse(userData);
             setJwtUser({
-              email: payload.sub,
+              email: user.email,
               user_type: 'jwt'
             });
             return true;
           } else {
             // Token 過期，清除
             localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
           }
         } catch (error) {
           console.error('JWT token 解析失敗:', error);
           localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
         }
       }
       return false;
