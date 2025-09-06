@@ -21,7 +21,6 @@ const channelRoutes = require('./routes/channels');
 const userRoutes = require('./routes/users');
 const summaryRoutes = require('./routes/summaries');
 const lineWebhookRoutes = require('./routes/lineWebhook');
-const userChannelRoutes = require('./routes/userChannels');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -89,7 +88,6 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/summaries', summaryRoutes);
 app.use('/api/line', lineWebhookRoutes);
-app.use('/api/user-channels', userChannelRoutes);
 
 // Error handling middleware
 app.use(notFound);
