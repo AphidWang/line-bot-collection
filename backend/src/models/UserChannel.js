@@ -53,7 +53,7 @@ class UserChannel {
         channelId,
         accessToken: JSON.stringify(encryptedAccessToken),
         channelSecret: JSON.stringify(encryptedChannelSecret),
-        userKey, // 存儲在用戶表中，不在頻道表中
+        userKey, // 存儲在 UserChannel 表中
         status: 'active',
         webhookUrl: `https://lucentis.zeabur.app/api/line/webhook/${channelId}`
       }
@@ -79,8 +79,7 @@ class UserChannel {
   // 獲取頻道憑證（僅在需要時解密）
   static async getChannelCredentials(channelId) {
     const channel = await prisma.userChannel.findUnique({
-      where: { channelId },
-      include: { user: true }
+      where: { channelId }
     });
 
     if (!channel) return null;
