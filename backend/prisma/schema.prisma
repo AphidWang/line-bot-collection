@@ -68,16 +68,20 @@ model Message {
 }
 
 model UserChannel {
-  id        String   @id @default(cuid())
-  userId    String
-  channelId String
-  isTracked Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  userId       String
+  channelId    String   // Line Channel ID
+  accessToken  String?  // Encrypted access token
+  channelSecret String? // Encrypted channel secret
+  userKey      String?  // User-specific encryption key
+  status       String   @default("active") // active, inactive, error
+  webhookUrl   String?  // Custom webhook URL
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [lineId], onDelete: Cascade)
 
   @@unique([userId, channelId])
   @@map("user_channels")
