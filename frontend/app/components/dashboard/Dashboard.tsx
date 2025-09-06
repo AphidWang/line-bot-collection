@@ -6,7 +6,7 @@ import { auth } from '@/app/firebase';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
-import { MessageSquare, LogOut, Filter, Eye, Brain, Calendar } from 'lucide-react';
+import { MessageSquare, LogOut, Filter, Eye, Brain, Calendar, RefreshCw } from 'lucide-react';
 import MessageTable from './MessageTable';
 import SummaryModal from './SummaryModal';
 
@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [showRawMessages, setShowRawMessages] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [jwtUser, setJwtUser] = useState<JwtUser | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -164,6 +165,35 @@ export default function Dashboard() {
     setShowSummaryModal(true);
   };
 
+  const handleRefresh = () => {
+    fetchMessages();
+  };
+
+  // 取得所有群組
+  const getChannels = () => {
+    const channels = new Set(messages.map(m => m.group_id));
+    return Array.from(channels);
+  };
+
+  // 取得選中群組的訊息
+  const getChannelMessages = (channelId: string) => {
+    return messages.filter(m => m.group_id === channelId);
+  };
+
+  // 取得用戶顏色
+  const getUserColor = (userId: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-yellow-500', 'bg-red-500', 'bg-teal-500',
+      'bg-orange-500', 'bg-cyan-500'
+    ];
+    const hash = userId.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   // 取得當前用戶 email
   const getCurrentUserEmail = () => {
     if (jwtUser) {
@@ -287,6 +317,16 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-6">
           <div className="flex space-x-4">
             <Button
+              onClick={handleRefresh}
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              重新整理
+            </Button>
+            
+            <Button
               onClick={() => setShowRawMessages(!showRawMessages)}
               variant="outline"
               size="sm"
@@ -310,19 +350,61 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Messages Table */}
+        {/* Messages Display */}
         {showRawMessages && (
-          <Card>
-            <CardHeader>
-              <CardTitle>原始訊息</CardTitle>
-              <CardDescription>
-                顯示所有篩選後的訊息內容
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MessageTable messages={filteredMessages} />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {getChannels().map((channelId) => (
+              <Card key={channelId}>
+                <CardHeader>
+                  <CardTitle 
+                    className="cursor-pointer hover:text-blue-600"
+                    onClick={() => setSelectedChannel(selectedChannel === channelId ? null : channelId)}
+                  >
+                    {channelId}
+                    <span className="ml-2 text-sm text-gray-500">
+                      ({getChannelMessages(channelId).length} 條訊息)
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                {selectedChannel === channelId && (
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {getChannelMessages(channelId).map((message) => (
+                        <div key={message.id} className="flex flex-col">
+                          <div className={`flex ${message.user_id === getCurrentUserEmail() ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                              message.user_id === getCurrentUserEmail() 
+                                ? 'bg-white border border-gray-300' 
+                                : `${getUserColor(message.user_id)} text-white`
+                            }`}>
+                              <div className="text-sm font-medium mb-1">
+                                {message.user_id === getCurrentUserEmail() ? '我' : message.user_id}
+                              </div>
+                              <div className="text-sm">{message.message}</div>
+                            </div>
+                          </div>
+                          <div className={`text-xs text-gray-500 mt-1 ${
+                            message.user_id === getCurrentUserEmail() ? 'text-right' : 'text-left'
+                          }`}>
+                            {new Date(message.timestamp).toLocaleDateString('zh-TW', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              weekday: 'short'
+                            }).replace(/\//g, '/')} {new Date(message.timestamp).toLocaleTimeString('zh-TW', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
         )}
 
         {/* Summary Modal */}
