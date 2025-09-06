@@ -105,6 +105,7 @@ app.listen(PORT, async () => {
     console.log('✅ Schema sync completed');
   } catch (error) {
     console.error('⚠️ Schema sync failed:', error.message);
+    console.error('⚠️ Full error:', error);
     console.log('ℹ️ Continuing with server startup...');
   }
   
