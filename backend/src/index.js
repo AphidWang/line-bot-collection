@@ -101,7 +101,7 @@ app.listen(PORT, async () => {
     // 同步資料庫 schema
     const { execSync } = require('child_process');
     console.log('🗄️ Syncing database schema...');
-    execSync('npx prisma db push', { stdio: 'inherit' });
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
     console.log('✅ Schema sync completed');
   } catch (error) {
     console.error('⚠️ Schema sync failed:', error.message);
