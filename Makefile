@@ -66,6 +66,11 @@ frontend: install
 	@echo "🌐 Starting frontend only..."
 	@cd frontend && npm run dev
 
+# 開發環境（連接到 prod 資料庫）
+dev-prod-db: install
+	@echo "🚀 Starting dev environment with prod database..."
+	@./scripts/dev.sh
+
 # Docker 部署
 docker: install
 	@echo "🐳 Starting Docker deployment..."
