@@ -7,7 +7,8 @@ class UserChannel {
   static encrypt(text, key) {
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher(algorithm, key);
+    const cipher = crypto.createCipherGCM(algorithm, Buffer.from(key, 'hex'), iv);
+    cipher.setAAD(Buffer.from('user-channel', 'utf8'));
     
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -24,7 +25,9 @@ class UserChannel {
   // 解密函數
   static decrypt(encryptedData, key) {
     const algorithm = 'aes-256-gcm';
-    const decipher = crypto.createDecipher(algorithm, key);
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const decipher = crypto.createDecipherGCM(algorithm, Buffer.from(key, 'hex'), iv);
+    decipher.setAAD(Buffer.from('user-channel', 'utf8'));
     decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
     
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
