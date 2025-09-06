@@ -98,13 +98,13 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, async () => {
   try {
-    // 執行資料庫遷移
+    // 同步資料庫 schema
     const { execSync } = require('child_process');
-    console.log('🗄️ Running database migrations...');
-    execSync('npx prisma migrate deploy', { stdio: 'inherit' });
-    console.log('✅ Migrations completed');
+    console.log('🗄️ Syncing database schema...');
+    execSync('npx prisma db push', { stdio: 'inherit' });
+    console.log('✅ Schema sync completed');
   } catch (error) {
-    console.error('⚠️ Migration failed:', error.message);
+    console.error('⚠️ Schema sync failed:', error.message);
     console.log('ℹ️ Continuing with server startup...');
   }
   
