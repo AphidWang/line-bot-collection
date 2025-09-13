@@ -7,7 +7,7 @@ class UserChannel {
   static encrypt(text, key) {
     const algorithm = 'aes-256-cbc';
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher(algorithm, Buffer.from(key, 'hex'));
+    const cipher = crypto.createCipheriv(algorithm, Buffer.from(key, 'hex'), iv);
     
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -21,7 +21,8 @@ class UserChannel {
   // 解密函數
   static decrypt(encryptedData, key) {
     const algorithm = 'aes-256-cbc';
-    const decipher = crypto.createDecipher(algorithm, Buffer.from(key, 'hex'));
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(key, 'hex'), iv);
     
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
