@@ -52,12 +52,10 @@ router.post('/', validateChannelData, async (req, res) => {
     const { channelId, accessToken, channelSecret } = req.body;
 
     // 檢查頻道是否已存在
-    const existingChannel = await prisma.userChannel.findUnique({
+    const existingChannel = await prisma.userChannel.findFirst({
       where: {
-        userId_channelId: {
-          userId,
-          channelId
-        }
+        userId,
+        channelId
       }
     });
 
