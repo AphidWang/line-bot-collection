@@ -2,8 +2,12 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { prisma } = require('../config/database');
 const UserChannel = require('../models/UserChannel');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(authenticateToken);
 
 // 驗證中間件
 const validateChannelData = [
