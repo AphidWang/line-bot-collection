@@ -26,7 +26,8 @@ router.get('/', async (req, res) => {
     console.error('Get user channels error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get user channels'
+      message: 'Failed to get user channels',
+      error: error.message
     });
   }
 });
@@ -85,7 +86,8 @@ router.post('/', validateChannelData, async (req, res) => {
     console.error('Add channel error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to add channel'
+      message: 'Failed to add channel',
+      error: error.message
     });
   }
 });
