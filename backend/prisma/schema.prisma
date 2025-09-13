@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,77 +8,67 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?
-  name      String?
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Firebase auth
-  firebaseUid String? @unique
-
-  // Relations
-  userChannels UserChannel[]
-  summaries    Summary[]
+  id           String        @id @default(cuid())
+  email        String        @unique
+  password     String?
+  name         String?
+  avatar       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  firebaseUid  String?       @unique
   messages     Message[]
+  summaries    Summary[]
+  userChannels UserChannel[]
 
   @@map("users")
 }
 
 model Channel {
-  id          String   @id @default(cuid())
-  lineId      String   @unique // Line channel ID
-  name        String
-  pictureUrl  String?
-  status      String   @default("active") // active, inactive
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  userChannels UserChannel[]
+  id           String        @id @default(cuid())
+  lineId       String        @unique
+  name         String
+  pictureUrl   String?
+  status       String        @default("active")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   messages     Message[]
   summaries    Summary[]
+  userChannels UserChannel[]
 
   @@map("channels")
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  lineId    String   @unique // Line message ID
-  channelId String
-  userId    String   // Line user ID
-  userName  String?
+  id         String   @id @default(cuid())
+  lineId     String   @unique
+  channelId  String
+  userId     String
+  userName   String?
   userAvatar String?
-  type      String   // text, image, video, audio, file, location, sticker
-  content   String   // For text messages, or file URL for media
-  metadata  Json?    // Additional message data
-  timestamp DateTime
-  createdAt DateTime @default(now())
-
-  // Relations
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user    User?  @relation(fields: [userId], references: [id])
+  type       String
+  content    String
+  metadata   Json?
+  timestamp  DateTime
+  createdAt  DateTime @default(now())
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("messages")
 }
 
 model UserChannel {
-  id           String   @id @default(cuid())
-  userId       String
-  channelId    String   // Line Channel ID
-  accessToken  String?  // Encrypted access token
-  channelSecret String? // Encrypted channel secret
-  userKey      String?  // User-specific encryption key
-  status       String   @default("active") // active, inactive, error
-  webhookUrl   String?  // Custom webhook URL
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channel Channel? @relation(fields: [channelId], references: [lineId], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  userId        String
+  channelId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  accessToken   String?
+  channelSecret String?
+  status        String   @default("active")
+  userKey       String?
+  webhookUrl    String?
+  channel       Channel  @relation(fields: [channelId], references: [lineId], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, channelId])
   @@map("user_channels")
@@ -91,18 +78,13 @@ model Summary {
   id        String   @id @default(cuid())
   userId    String
   channelId String?
-  date      DateTime @db.Date // Summary date
-  content   String   // AI generated summary
-  tokens    Int      // Token count used
+  date      DateTime @db.Date
+  content   String
+  tokens    Int
   createdAt DateTime @default(now())
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, channelId, date])
   @@map("summaries")
 }
-
-// Indexes for better performance
-// Note: _prisma_migrations table is managed automatically by Prisma
