@@ -223,6 +223,12 @@ export default function Dashboard() {
     return messages.filter(m => m.group_id === channelId);
   };
 
+  // 根據頻道名稱找到對應的 channelId
+  const getChannelIdByName = (channelName: string) => {
+    const channel = userChannels.find(c => c.channelId === channelName);
+    return channel ? channel.channelId : null;
+  };
+
   // 取得用戶顏色
   const getUserColor = (userId: string) => {
     const colors = [
@@ -428,7 +434,10 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle 
                     className="cursor-pointer hover:text-blue-600"
-                    onClick={() => setSelectedChannel(selectedChannel === channelId ? null : channelId)}
+                    onClick={() => {
+                      const actualChannelId = getChannelIdByName(channelId);
+                      setSelectedChannel(selectedChannel === actualChannelId ? null : actualChannelId);
+                    }}
                   >
                     {channelId}
                     <span className="ml-2 text-sm text-gray-500">
@@ -436,7 +445,7 @@ export default function Dashboard() {
                     </span>
                   </CardTitle>
                 </CardHeader>
-                {selectedChannel === channelId && (
+                {selectedChannel === getChannelIdByName(channelId) && (
                   <CardContent>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {getChannelMessages(channelId).map((message) => (
