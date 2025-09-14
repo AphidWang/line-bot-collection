@@ -45,7 +45,7 @@ Line Assistant 專案需要配置環境變數來支援不同的功能和部署�
 | 變數名稱 | 說明 | 預設值 |
 |---------|------|--------|
 | `XAI_API_KEY` | xAI API 金鑰（優先使用） | 可選 |
-| `XAI_MODEL` | xAI 使用的模型 | `gpt-4o-mini` |
+| `XAI_MODEL` | xAI 使用的模型 | `grok-4-0709` |
 | `OPENAI_API_KEY` | OpenAI API 金鑰 | 可選 |
 | `OPENAI_MODEL` | OpenAI 使用的模型 | `gpt-3.5-turbo` |
 | `OPENAI_MAX_TOKENS` | 最大 Token 數 | `4000` |
