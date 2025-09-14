@@ -77,6 +77,13 @@ export default function Dashboard() {
     }
   }, [jwtUser, auth?.currentUser]);
 
+  // 當選擇的頻道改變時重新載入訊息
+  useEffect(() => {
+    if (userChannels.length > 0) {
+      fetchMessages();
+    }
+  }, [selectedChannel]);
+
   useEffect(() => {
     applyFilters();
   }, [messages, filters]);
@@ -98,7 +105,12 @@ export default function Dashboard() {
         return;
       }
 
-      const response = await fetch('https://lucentis.zeabur.app/api/messages', {
+      let url = 'https://lucentis.zeabur.app/api/messages';
+      if (selectedChannel) {
+        url += `?channelId=${selectedChannel}`;
+      }
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
