@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
-import { Plus, Trash2, Settings, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Settings, CheckCircle, XCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 
 interface UserChannel {
   id: string;
@@ -157,6 +157,17 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
     }
   };
 
+  // 複製 Webhook URL
+  const copyWebhookUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Webhook URL 已複製到剪貼板');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      alert('複製失敗，請手動複製');
+    }
+  };
+
   useEffect(() => {
     fetchChannels();
   }, []);
@@ -165,7 +176,12 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
     <div className="space-y-6">
       {/* 添加頻道按鈕 */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">頻道管理</h2>
+        <div>
+          <h2 className="text-xl font-semibold">頻道管理</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            管理您的 LINE Bot 頻道，每個頻道都有獨立的 Webhook URL
+          </p>
+        </div>
         <Button
           onClick={() => setShowAddForm(!showAddForm)}
           className="bg-blue-600 hover:bg-blue-700"
@@ -181,7 +197,7 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
           <CardHeader>
             <CardTitle>添加新頻道</CardTitle>
             <CardDescription>
-              輸入 LINE Bot 的憑證資訊來監控頻道
+              輸入 LINE Bot 的憑證資訊來監控頻道。添加後會生成專屬的 Webhook URL，請將其配置到 LINE 開發者後台。
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -242,6 +258,26 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
         </Card>
       )}
 
+      {/* 配置說明 */}
+      {channels.length > 0 && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex items-start space-x-3">
+              <ExternalLink className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-blue-900">如何配置 Webhook URL</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  1. 複製下方頻道的 Webhook URL<br/>
+                  2. 前往 <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="underline">LINE 開發者後台</a><br/>
+                  3. 選擇對應的 Bot，進入「Messaging API」設定<br/>
+                  4. 將 Webhook URL 貼到「Webhook URL」欄位並啟用
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 頻道列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {channels.map((channel) => (
@@ -261,12 +297,26 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="text-sm">
-                  <strong>Webhook URL:</strong>
-                  <div className="font-mono text-xs bg-gray-100 p-2 rounded mt-1 break-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <strong>Webhook URL:</strong>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyWebhookUrl(channel.webhookUrl)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      複製
+                    </Button>
+                  </div>
+                  <div className="font-mono text-xs bg-gray-100 p-2 rounded break-all">
                     {channel.webhookUrl}
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    請將此 URL 配置到 LINE 開發者後台的 Webhook URL 設定中
+                  </p>
                 </div>
                 
                 <div className="flex space-x-2">
