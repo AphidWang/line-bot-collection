@@ -19,7 +19,7 @@ const validateChannelData = [
 // 獲取用戶的頻道列表
 router.get('/', async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const channels = await UserChannel.getUserChannels(userId);
     
     res.json({
@@ -48,7 +48,7 @@ router.post('/', validateChannelData, async (req, res) => {
       });
     }
 
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { channelId, accessToken, channelSecret } = req.body;
 
     // 檢查頻道是否已存在
@@ -65,6 +65,17 @@ router.post('/', validateChannelData, async (req, res) => {
         message: 'Channel already exists for this user'
       });
     }
+
+    // 先創建或連接 Channel
+    await prisma.channel.upsert({
+      where: { lineId: channelId },
+      update: {},
+      create: {
+        lineId: channelId,
+        name: `Channel ${channelId}`,
+        status: 'active'
+      }
+    });
 
     // 創建頻道
     const channel = await UserChannel.createChannel(userId, {
@@ -97,7 +108,7 @@ router.post('/', validateChannelData, async (req, res) => {
 // 更新頻道狀態
 router.patch('/:channelId/status', async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { channelId } = req.params;
     const { status } = req.body;
 
@@ -131,7 +142,7 @@ router.patch('/:channelId/status', async (req, res) => {
 // 刪除頻道
 router.delete('/:channelId', async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { channelId } = req.params;
 
     await UserChannel.deleteChannel(userId, channelId);
