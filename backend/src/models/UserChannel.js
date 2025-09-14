@@ -72,7 +72,7 @@ class UserChannel {
 
   // 獲取頻道憑證（僅在需要時解密）
   static async getChannelCredentials(channelId) {
-    const channel = await prisma.userChannel.findUnique({
+    const channel = await prisma.userChannel.findFirst({
       where: { channelId }
     });
 
