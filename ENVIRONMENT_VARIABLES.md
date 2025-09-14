@@ -40,14 +40,18 @@ Line Assistant 專案需要配置環境變數來支援不同的功能和部署�
 | `FIREBASE_CLIENT_EMAIL` | Firebase 客戶端郵箱 |
 | `FIREBASE_STORAGE_BUCKET` | Firebase 儲存桶 |
 
-### OpenAI 配置
+### AI 配置（支援 xAI 和 OpenAI）
 
 | 變數名稱 | 說明 | 預設值 |
 |---------|------|--------|
-| `OPENAI_API_KEY` | OpenAI API 金鑰 | 必需 |
-| `OPENAI_MODEL` | 使用的模型 | `gpt-3.5-turbo` |
+| `XAI_API_KEY` | xAI API 金鑰（優先使用） | 可選 |
+| `XAI_MODEL` | xAI 使用的模型 | `gpt-4o-mini` |
+| `OPENAI_API_KEY` | OpenAI API 金鑰 | 可選 |
+| `OPENAI_MODEL` | OpenAI 使用的模型 | `gpt-3.5-turbo` |
 | `OPENAI_MAX_TOKENS` | 最大 Token 數 | `4000` |
 | `OPENAI_TEMPERATURE` | 創意度參數 | `0.7` |
+
+**注意**：系統會優先使用 xAI，如果沒有設定 `XAI_API_KEY` 才會使用 `OPENAI_API_KEY`。
 
 ### Line Bot 配置
 

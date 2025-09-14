@@ -7,20 +7,27 @@ const initializeOpenAI = () => {
     return openai;
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    console.log('⚠️ OpenAI API key not found. AI summary feature will be disabled.');
+  // 優先使用 xAI，如果沒有則使用 OpenAI
+  const apiKey = process.env.XAI_API_KEY || process.env.OPENAI_API_KEY;
+  const baseURL = process.env.XAI_API_KEY ? 'https://api.x.ai/v1' : undefined;
+  const model = process.env.XAI_API_KEY ? (process.env.XAI_MODEL || 'gpt-4o-mini') : (process.env.OPENAI_MODEL || 'gpt-3.5-turbo');
+
+  if (!apiKey) {
+    console.log('⚠️ No AI API key found (XAI_API_KEY or OPENAI_API_KEY). AI summary feature will be disabled.');
     return null;
   }
 
   try {
     openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: apiKey,
+      baseURL: baseURL,
     });
 
-    console.log('✅ OpenAI initialized successfully');
+    const provider = process.env.XAI_API_KEY ? 'xAI' : 'OpenAI';
+    console.log(`✅ ${provider} initialized successfully with model: ${model}`);
     return openai;
   } catch (error) {
-    console.error('❌ Failed to initialize OpenAI:', error);
+    console.error('❌ Failed to initialize AI service:', error);
     return null;
   }
 };
@@ -58,8 +65,9 @@ const generateSummary = async (messages, type = 'daily') => {
     }
 
     // Generate summary
+    const model = process.env.XAI_API_KEY ? (process.env.XAI_MODEL || 'gpt-4o-mini') : (process.env.OPENAI_MODEL || 'gpt-3.5-turbo');
     const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+      model: model,
       messages: [
         {
           role: 'system',
@@ -80,7 +88,7 @@ const generateSummary = async (messages, type = 'daily') => {
     return {
       content: summary,
       tokens,
-      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+      model: model
     };
 
   } catch (error) {
@@ -143,10 +151,11 @@ const generateChunkedSummary = async (chunks, type) => {
     const client = getOpenAIClient();
     
     // Generate summary for each chunk
+    const model = process.env.XAI_API_KEY ? (process.env.XAI_MODEL || 'gpt-4o-mini') : (process.env.OPENAI_MODEL || 'gpt-3.5-turbo');
     const chunkSummaries = [];
     for (const chunk of chunks) {
       const completion = await client.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+        model: model,
         messages: [
           {
             role: 'system',
@@ -167,7 +176,7 @@ const generateChunkedSummary = async (chunks, type) => {
 
     // Generate final summary from chunk summaries
     const finalCompletion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+      model: model,
       messages: [
         {
           role: 'system',
@@ -188,7 +197,7 @@ const generateChunkedSummary = async (chunks, type) => {
     return {
       content: finalSummary,
       tokens: totalTokens,
-      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+      model: model
     };
 
   } catch (error) {
