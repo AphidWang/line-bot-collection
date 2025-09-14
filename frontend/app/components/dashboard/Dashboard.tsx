@@ -6,9 +6,10 @@ import { auth } from '@/app/firebase';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
-import { MessageSquare, LogOut, Filter, Eye, Brain, Calendar, RefreshCw } from 'lucide-react';
+import { MessageSquare, LogOut, Filter, Eye, Brain, Calendar, RefreshCw, Settings } from 'lucide-react';
 import MessageTable from './MessageTable';
 import SummaryModal from './SummaryModal';
+import ChannelManager from './ChannelManager';
 
 interface Message {
   id: number;
@@ -29,8 +30,10 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [showRawMessages, setShowRawMessages] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showChannelManager, setShowChannelManager] = useState(false);
   const [jwtUser, setJwtUser] = useState<JwtUser | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [userChannels, setUserChannels] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -66,10 +69,11 @@ export default function Dashboard() {
     checkJwtToken();
   }, []);
 
-  // 當 jwtUser 或 auth.currentUser 改變時才獲取訊息
+  // 當 jwtUser 或 auth.currentUser 改變時才獲取訊息和頻道
   useEffect(() => {
     if (jwtUser || (auth && auth.currentUser)) {
       fetchMessages();
+      fetchUserChannels();
     }
   }, [jwtUser, auth?.currentUser]);
 
@@ -119,6 +123,33 @@ export default function Dashboard() {
       console.error('Failed to fetch messages:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUserChannels = async () => {
+    try {
+      let token;
+      if (jwtUser) {
+        token = localStorage.getItem('access_token');
+      } else if (auth && auth.currentUser) {
+        token = await auth.currentUser.getIdToken();
+      }
+
+      if (!token) return;
+
+      const response = await fetch('https://lucentis.zeabur.app/api/user-channels', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserChannels(data.channels || []);
+      }
+    } catch (error) {
+      console.error('Error fetching user channels:', error);
     }
   };
 
@@ -215,6 +246,15 @@ export default function Dashboard() {
               <h1 className="text-xl font-semibold text-gray-900">LINE Assistant</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => setShowChannelManager(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <Settings className="h-4 w-4" />
+                <span>頻道設定</span>
+              </Button>
               <span className="text-sm text-gray-600">
                 {getCurrentUserEmail()}
               </span>
@@ -275,7 +315,25 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  選擇頻道
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedChannel || ''}
+                  onChange={(e) => setSelectedChannel(e.target.value || null)}
+                >
+                  <option value="">所有頻道</option>
+                  {userChannels.map((channel) => (
+                    <option key={channel.id} value={channel.channelId}>
+                      {channel.channelId} ({channel.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   開始日期
@@ -413,6 +471,30 @@ export default function Dashboard() {
           onClose={() => setShowSummaryModal(false)}
           filters={filters}
         />
+
+        {/* Channel Manager Modal */}
+        {showChannelManager && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">頻道管理</h2>
+                <Button
+                  onClick={() => setShowChannelManager(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  關閉
+                </Button>
+              </div>
+              <ChannelManager 
+                onChannelSelect={(channelId) => {
+                  setSelectedChannel(channelId);
+                  setShowChannelManager(false);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

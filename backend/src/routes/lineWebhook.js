@@ -38,9 +38,41 @@ const verifySignature = (req, res, next) => {
   next();
 };
 
-// Line webhook endpoint
-router.post('/webhook', async (req, res) => {
+// Line webhook endpoint with channel ID
+router.post('/webhook/:channelId', async (req, res) => {
+  const { channelId } = req.params;
+  
   try {
+    // 從資料庫獲取 channel 憑證
+    const UserChannel = require('../models/UserChannel');
+    const credentials = await UserChannel.getChannelCredentials(channelId);
+    
+    if (!credentials) {
+      console.error('❌ Channel not found:', channelId);
+      return res.status(404).json({
+        error: 'Channel not found',
+        message: `Channel ${channelId} not found or not configured`
+      });
+    }
+
+    // 驗證簽名（使用對應 channel 的 secret）
+    const signature = req.headers['x-line-signature'];
+    if (signature && credentials.channelSecret) {
+      const body = JSON.stringify(req.body);
+      const hash = crypto
+        .createHmac('SHA256', credentials.channelSecret)
+        .update(body)
+        .digest('base64');
+
+      if (signature !== hash) {
+        console.error('❌ Invalid signature for channel:', channelId);
+        return res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid signature'
+        });
+      }
+    }
+
     const { events } = req.body;
 
     if (!events || !Array.isArray(events)) {
@@ -50,9 +82,11 @@ router.post('/webhook', async (req, res) => {
       });
     }
 
+    console.log(`📨 Received LINE webhook events for channel ${channelId}:`, events.length);
+
     // Process each event
     for (const event of events) {
-      await processLineEvent(event);
+      await processLineEvent(event, channelId);
     }
 
     res.json({ message: 'Webhook processed successfully' });
@@ -66,7 +100,7 @@ router.post('/webhook', async (req, res) => {
 });
 
 // Process Line event
-const processLineEvent = async (event) => {
+const processLineEvent = async (event, webhookChannelId) => {
   try {
     // Only process message events
     if (event.type !== 'message') {
@@ -74,25 +108,25 @@ const processLineEvent = async (event) => {
     }
 
     const { message, source, replyToken, timestamp } = event;
-    const channelId = source.groupId || source.roomId || source.userId;
+    const groupId = source.groupId || source.roomId || source.userId;
     const userId = source.userId;
 
-    // Skip if no channel ID (direct message)
-    if (!channelId) {
+    // Skip if no group ID (direct message)
+    if (!groupId) {
       return;
     }
 
     // Find or create channel
     let channel = await prisma.channel.findUnique({
-      where: { lineId: channelId }
+      where: { lineId: webhookChannelId }
     });
 
     if (!channel) {
       // Get channel info from Line API (you might want to implement this)
       channel = await prisma.channel.create({
         data: {
-          lineId: channelId,
-          name: `Channel ${channelId.slice(-8)}`, // Fallback name
+          lineId: webhookChannelId,
+          name: `Channel ${webhookChannelId.slice(-8)}`, // Fallback name
           status: 'active'
         }
       });
