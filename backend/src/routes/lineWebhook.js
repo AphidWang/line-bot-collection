@@ -99,35 +99,6 @@ router.post('/webhook/:channelId', async (req, res) => {
   }
 });
 
-// 原始的 webhook 路由（向後兼容）
-router.post('/webhook', async (req, res) => {
-  try {
-    const { events } = req.body;
-
-    if (!events || !Array.isArray(events)) {
-      return res.status(400).json({
-        error: 'Invalid request',
-        message: 'No events found in request body'
-      });
-    }
-
-    console.log('📨 Received LINE webhook events (legacy):', events.length);
-
-    // Process each event
-    for (const event of events) {
-      await processLineEvent(event, 'legacy-channel');
-    }
-
-    res.json({ message: 'Webhook processed successfully' });
-  } catch (error) {
-    console.error('Line webhook error (legacy):', error);
-    res.status(500).json({
-      error: 'Webhook processing failed',
-      message: 'Failed to process webhook events'
-    });
-  }
-});
-
 // Process Line event
 const processLineEvent = async (event, webhookChannelId) => {
   try {
