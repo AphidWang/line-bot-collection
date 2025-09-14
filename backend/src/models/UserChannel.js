@@ -49,12 +49,7 @@ class UserChannel {
         channelSecret: JSON.stringify(encryptedChannelSecret),
         userKey, // 存儲在 UserChannel 表中
         status: 'active',
-        webhookUrl: `https://lucentis.zeabur.app/api/line/webhook/${channelId}`,
-        channel: {
-          connect: {
-            lineId: channelId
-          }
-        }
+        webhookUrl: `https://lucentis.zeabur.app/api/line/webhook/${channelId}`
       }
     });
   }
