@@ -109,11 +109,37 @@ const processLineEvent = async (event, webhookChannelId) => {
       return;
     }
 
+    // Log the full incoming message event for debugging
+    try {
+      console.log('📝 LINE message event (raw):', JSON.stringify(event));
+    } catch (e) {
+      console.log('📝 LINE message event (raw, toString):', String(event));
+    }
+
     const { message, source, replyToken, timestamp } = event;
-    const isGroup = !!(source.groupId || source.roomId);
+    const sourceType = source?.type; // 'user' | 'group' | 'room'
+    const isGroup = sourceType === 'group' || sourceType === 'room';
     const userId = source.userId;
-    // For groups/rooms, use Line group/room id; for DMs, synthesize a per-channel unique id
-    const lineGroupId = isGroup ? (source.groupId || source.roomId) : `${webhookChannelId}:${userId}`;
+    // For groups/rooms, use Line group/room id strictly by source.type; for DMs, synthesize per-channel id
+    const lineGroupId = isGroup
+      ? (sourceType === 'group' ? source.groupId : source.roomId)
+      : `${webhookChannelId}:${userId}`;
+
+    console.log('🔎 Parsed message meta:', {
+      sourceType,
+      userId,
+      groupId: source?.groupId,
+      roomId: source?.roomId,
+      resolvedGroupKey: lineGroupId,
+      webhookChannelId,
+      messageType: message?.type,
+    });
+
+    if (isGroup && !lineGroupId) {
+      // Safety: if LINE says it's group/room but id missing, log and skip rather than misclassify as DM
+      console.warn('⚠️ Received group/room event without groupId/roomId. Skipping.', { source });
+      return;
+    }
 
     // Find or create channel
     let channel = await prisma.channel.findUnique({
