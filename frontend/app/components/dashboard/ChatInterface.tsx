@@ -93,7 +93,7 @@ export default function ChatInterface({ group, onMarkAsRead }: ChatInterfaceProp
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     // Mark as read when scrolling to bottom
     if (messages.length > 0) {
-      const lastMessage = messages[messages[messages.length - 1]];
+      const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.id !== lastReadMessageId.current) {
         onMarkAsRead(lastMessage.id);
         lastReadMessageId.current = lastMessage.id;
