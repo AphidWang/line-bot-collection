@@ -49,7 +49,7 @@ router.post('/', validateChannelData, async (req, res) => {
     }
 
     const userId = req.user.id;
-    const { channelId, accessToken, channelSecret } = req.body;
+    const { channelId, accessToken, channelSecret, alias } = req.body;
 
     // 檢查頻道是否已存在
     const existingChannel = await prisma.userChannel.findFirst({
@@ -81,7 +81,8 @@ router.post('/', validateChannelData, async (req, res) => {
     const channel = await UserChannel.createChannel(userId, {
       channelId,
       accessToken,
-      channelSecret
+      channelSecret,
+      alias
     });
 
     res.status(201).json({
@@ -90,6 +91,7 @@ router.post('/', validateChannelData, async (req, res) => {
       channel: {
         id: channel.id,
         channelId: channel.channelId,
+        alias: channel.alias,
         status: channel.status,
         webhookUrl: channel.webhookUrl,
         createdAt: channel.createdAt
@@ -105,7 +107,7 @@ router.post('/', validateChannelData, async (req, res) => {
   }
 });
 
-// 更新頻道狀態
+// 更新頻道狀態（使用 userId + channel lineId 複合鍵）
 router.patch('/:channelId/status', async (req, res) => {
   try {
     const userId = req.user.id;
@@ -119,7 +121,7 @@ router.patch('/:channelId/status', async (req, res) => {
       });
     }
 
-    const channel = await UserChannel.updateChannelStatus(channelId, status);
+    const channel = await UserChannel.updateChannelStatus(userId, channelId, status);
 
     res.json({
       success: true,
@@ -136,6 +138,37 @@ router.patch('/:channelId/status', async (req, res) => {
       success: false,
       message: 'Failed to update channel status'
     });
+  }
+});
+
+// 更新頻道別名
+router.patch('/:channelId/alias', [
+  body('alias').optional().isString().isLength({ max: 80 }).withMessage('Alias must be a string up to 80 chars')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+    }
+
+    const userId = req.user.id;
+    const { channelId } = req.params;
+    const { alias } = req.body;
+
+    const updated = await UserChannel.updateAlias(userId, channelId, alias ?? null);
+
+    res.json({
+      success: true,
+      message: 'Channel alias updated',
+      channel: {
+        id: updated.id,
+        channelId: updated.channelId,
+        alias: updated.alias
+      }
+    });
+  } catch (error) {
+    console.error('Update channel alias error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update channel alias' });
   }
 });
 

@@ -5,10 +5,12 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Plus, Trash2, Settings, CheckCircle, XCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react';
+import { userChannelsAPI } from '@/app/lib/api';
 
 interface UserChannel {
   id: string;
   channelId: string;
+  alias?: string;
   status: 'active' | 'inactive' | 'error';
   webhookUrl: string;
   createdAt: string;
@@ -25,25 +27,16 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
   const [newChannel, setNewChannel] = useState({
     channelId: '',
     accessToken: '',
-    channelSecret: ''
+    channelSecret: '',
+    alias: ''
   });
 
   // 獲取用戶頻道列表
   const fetchChannels = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('https://lucentis.zeabur.app/api/user-channels', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setChannels(data.channels || []);
-      }
+      const data = await userChannelsAPI.list();
+      setChannels(data.channels || []);
     } catch (error) {
       console.error('Failed to fetch channels:', error);
     } finally {
@@ -57,27 +50,13 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('https://lucentis.zeabur.app/api/user-channels', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newChannel)
-      });
-
-      if (response.ok) {
-        setNewChannel({ channelId: '', accessToken: '', channelSecret: '' });
-        setShowAddForm(false);
-        fetchChannels(); // 重新獲取列表
-      } else {
-        const error = await response.json();
-        alert(`添加頻道失敗: ${error.message}`);
-      }
-    } catch (error) {
+      await userChannelsAPI.create(newChannel);
+      setNewChannel({ channelId: '', accessToken: '', channelSecret: '', alias: '' });
+      setShowAddForm(false);
+      fetchChannels();
+    } catch (error: any) {
       console.error('Failed to add channel:', error);
-      alert('添加頻道失敗');
+      alert(`添加頻道失敗${error?.message ? `: ${error.message}` : ''}`);
     } finally {
       setIsLoading(false);
     }
@@ -88,20 +67,8 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
     if (!confirm('確定要刪除這個頻道嗎？')) return;
 
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`https://lucentis.zeabur.app/api/user-channels/${channelId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        fetchChannels(); // 重新獲取列表
-      } else {
-        alert('刪除頻道失敗');
-      }
+      await userChannelsAPI.remove(channelId);
+      fetchChannels();
     } catch (error) {
       console.error('Failed to delete channel:', error);
       alert('刪除頻道失敗');
@@ -111,21 +78,22 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
   // 更新頻道狀態
   const handleUpdateStatus = async (channelId: string, status: string) => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`https://lucentis.zeabur.app/api/user-channels/${channelId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      });
-
-      if (response.ok) {
-        fetchChannels(); // 重新獲取列表
-      }
+      await userChannelsAPI.updateStatus(channelId, status as any);
+      fetchChannels();
     } catch (error) {
       console.error('Failed to update channel status:', error);
+    }
+  };
+
+  // 更新別名
+  const handleUpdateAlias = async (channelId: string) => {
+    const alias = prompt('輸入別名（留空可清除）：') ?? undefined;
+    try {
+      await userChannelsAPI.updateAlias(channelId, alias);
+      fetchChannels();
+    } catch (error) {
+      console.error('Failed to update alias:', error);
+      alert('更新別名失敗');
     }
   };
 
@@ -177,9 +145,9 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
       {/* 添加頻道按鈕 */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">頻道管理</h2>
+          <h2 className="text-xl font-semibold">帳號管理</h2>
           <p className="text-sm text-gray-600 mt-1">
-            管理您的 LINE Bot 頻道，每個頻道都有獨立的 Webhook URL
+            管理您的 LINE Bot 帳號，每個帳號都有獨立的 Webhook URL
           </p>
         </div>
         <Button
@@ -187,17 +155,17 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
-          添加頻道
+          添加帳號
         </Button>
       </div>
 
-      {/* 添加頻道表單 */}
+      {/* 添加帳號表單 */}
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle>添加新頻道</CardTitle>
+            <CardTitle>添加新帳號</CardTitle>
             <CardDescription>
-              輸入 LINE Bot 的憑證資訊來監控頻道。添加後會生成專屬的 Webhook URL，請將其配置到 LINE 開發者後台。
+              輸入 LINE Bot 的憑證資訊來監控帳號。添加後會生成專屬的 Webhook URL，請將其配置到 LINE 開發者後台。
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -240,10 +208,22 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  別名（可選）
+                </label>
+                <Input
+                  type="text"
+                  value={newChannel.alias}
+                  onChange={(e) => setNewChannel(prev => ({ ...prev, alias: e.target.value }))}
+                  placeholder="顯示名稱，如：公司客服 Bot"
+                />
+              </div>
               
               <div className="flex space-x-2">
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? '添加中...' : '添加頻道'}
+                  {isLoading ? '添加中...' : '添加帳號'}
                 </Button>
                 <Button
                   type="button"
@@ -278,13 +258,15 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
         </Card>
       )}
 
-      {/* 頻道列表 */}
+      {/* 帳號列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {channels.map((channel) => (
           <Card key={channel.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{channel.channelId}</CardTitle>
+                <CardTitle className="text-lg">
+                  {channel.alias ? `${channel.alias} (${channel.channelId})` : channel.channelId}
+                </CardTitle>
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(channel.status)}
                   <span className="text-sm text-gray-600">
@@ -295,6 +277,42 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
               <CardDescription>
                 創建於 {new Date(channel.createdAt).toLocaleDateString()}
               </CardDescription>
+              {/* 動作按鈕移到狀態下方，避免超出格子 */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onChannelSelect?.(channel.channelId)}
+                >
+                  <Settings className="h-4 w-4 mr-1" />
+                  查看訊息
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleUpdateAlias(channel.channelId)}
+                >
+                  設定別名
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleUpdateStatus(
+                    channel.channelId,
+                    channel.status === 'active' ? 'inactive' : 'active'
+                  )}
+                >
+                  {channel.status === 'active' ? '停用' : '啟用'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDeleteChannel(channel.channelId)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -318,37 +336,6 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                     請將此 URL 配置到 LINE 開發者後台的 Webhook URL 設定中
                   </p>
                 </div>
-                
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onChannelSelect?.(channel.channelId)}
-                  >
-                    <Settings className="h-4 w-4 mr-1" />
-                    查看訊息
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleUpdateStatus(
-                      channel.channelId, 
-                      channel.status === 'active' ? 'inactive' : 'active'
-                    )}
-                  >
-                    {channel.status === 'active' ? '停用' : '啟用'}
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDeleteChannel(channel.channelId)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -357,7 +344,7 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
 
       {channels.length === 0 && !isLoading && (
         <div className="text-center py-8 text-gray-500">
-          還沒有添加任何頻道
+          還沒有添加任何帳號
         </div>
       )}
     </div>

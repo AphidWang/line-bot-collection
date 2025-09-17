@@ -1,5 +1,5 @@
 // API 服務配置
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
   ? (process.env.NEXT_PUBLIC_API_URL.startsWith('http') 
       ? process.env.NEXT_PUBLIC_API_URL 
       : `https://${process.env.NEXT_PUBLIC_API_URL}`)
@@ -62,6 +62,14 @@ export const API_ENDPOINTS = {
   
   // 健康檢查
   HEALTH: `${API_BASE_URL}/health`,
+  
+  // 使用者頻道管理
+  USER_CHANNELS: {
+    LIST: `${API_BASE_URL}/api/user-channels`,
+    DETAIL: `${API_BASE_URL}/api/user-channels`,
+    STATUS: (channelId: string) => `${API_BASE_URL}/api/user-channels/${channelId}/status`,
+    ALIAS: (channelId: string) => `${API_BASE_URL}/api/user-channels/${channelId}/alias`,
+  },
 };
 
 // 檢查 token 是否有效
@@ -129,8 +137,13 @@ export const authAPI = {
   login: async (email: string, password: string) => {
     console.log('🔧 Login Debug:');
     console.log('API_ENDPOINTS.AUTH.LOGIN:', API_ENDPOINTS.AUTH.LOGIN);
-    const response = await apiRequest(API_ENDPOINTS.AUTH.LOGIN, {
+    
+    // 登入時不使用 apiRequest，避免添加 Authorization header
+    const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ email, password }),
     });
     
@@ -318,4 +331,44 @@ export const summariesAPI = {
 export const healthCheck = async () => {
   const response = await fetch(API_ENDPOINTS.HEALTH);
   return response.ok;
+};
+
+// 使用者頻道相關 API
+export const userChannelsAPI = {
+  list: async () => {
+    const response = await apiRequest(API_ENDPOINTS.USER_CHANNELS.LIST);
+    if (!response.ok) throw new Error('獲取頻道列表失敗');
+    return response.json();
+  },
+  create: async (payload: { channelId: string; accessToken: string; channelSecret: string; alias?: string }) => {
+    const response = await apiRequest(API_ENDPOINTS.USER_CHANNELS.LIST, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error('添加頻道失敗');
+    return response.json();
+  },
+  remove: async (channelId: string) => {
+    const response = await apiRequest(`${API_ENDPOINTS.USER_CHANNELS.DETAIL}/${channelId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('刪除頻道失敗');
+    return response.json();
+  },
+  updateStatus: async (channelId: string, status: 'active' | 'inactive' | 'error') => {
+    const response = await apiRequest(API_ENDPOINTS.USER_CHANNELS.STATUS(channelId), {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) throw new Error('更新頻道狀態失敗');
+    return response.json();
+  },
+  updateAlias: async (channelId: string, alias?: string) => {
+    const response = await apiRequest(API_ENDPOINTS.USER_CHANNELS.ALIAS(channelId), {
+      method: 'PATCH',
+      body: JSON.stringify({ alias }),
+    });
+    if (!response.ok) throw new Error('更新頻道別名失敗');
+    return response.json();
+  },
 };

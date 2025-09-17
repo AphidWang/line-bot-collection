@@ -32,7 +32,7 @@ class UserChannel {
 
   // 為用戶創建頻道
   static async createChannel(userId, channelData) {
-    const { channelId, accessToken, channelSecret } = channelData;
+    const { channelId, accessToken, channelSecret, alias } = channelData;
     
     // 生成用戶專用的加密金鑰
     const userKey = crypto.randomBytes(32).toString('hex');
@@ -45,6 +45,7 @@ class UserChannel {
       data: {
         userId,
         channelId,
+        alias,
         accessToken: JSON.stringify(encryptedAccessToken),
         channelSecret: JSON.stringify(encryptedChannelSecret),
         userKey, // 存儲在 UserChannel 表中
@@ -61,6 +62,8 @@ class UserChannel {
       select: {
         id: true,
         channelId: true,
+        alias: true,
+        isTracked: true,
         status: true,
         webhookUrl: true,
         createdAt: true,
@@ -88,9 +91,14 @@ class UserChannel {
   }
 
   // 更新頻道狀態
-  static async updateChannelStatus(channelId, status) {
+  static async updateChannelStatus(userId, channelId, status) {
     return await prisma.userChannel.update({
-      where: { channelId },
+      where: {
+        userId_channelId: {
+          userId,
+          channelId
+        }
+      },
       data: { status }
     });
   }
@@ -104,6 +112,19 @@ class UserChannel {
           channelId
         }
       }
+    });
+  }
+
+  // 更新別名
+  static async updateAlias(userId, channelId, alias) {
+    return await prisma.userChannel.update({
+      where: {
+        userId_channelId: {
+          userId,
+          channelId
+        }
+      },
+      data: { alias }
     });
   }
 }

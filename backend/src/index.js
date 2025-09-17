@@ -22,6 +22,7 @@ const userRoutes = require('./routes/users');
 const summaryRoutes = require('./routes/summaries');
 const lineWebhookRoutes = require('./routes/lineWebhook');
 const userChannelRoutes = require('./routes/userChannels');
+const groupRoutes = require('./routes/groups');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,9 +40,9 @@ app.use(helmet({
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://bot-collection.zeabur.app', 'https://lucentis.zeabur.app'] 
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
@@ -54,6 +55,8 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Body parsing middleware
+// Use raw body ONLY for LINE webhook to preserve signature correctness (emoji/unicode safe)
+app.use('/api/line/webhook', express.raw({ type: 'application/json', limit: '10mb' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -90,6 +93,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/summaries', summaryRoutes);
 app.use('/api/line', lineWebhookRoutes);
 app.use('/api/user-channels', userChannelRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Error handling middleware
 app.use(notFound);

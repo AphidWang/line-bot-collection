@@ -41,7 +41,19 @@ router.get('/', [
 
     // Build where clause
     const where = {};
-    if (channelId) where.channelId = channelId;
+    // Support passing Channel.id or Channel.lineId as channelId query param
+    if (channelId) {
+      let resolvedChannelId = channelId;
+      // Try resolve if it's a lineId
+      const channelById = await prisma.channel.findUnique({ where: { id: channelId } });
+      if (!channelById) {
+        const channelByLineId = await prisma.channel.findUnique({ where: { lineId: channelId } });
+        if (channelByLineId) {
+          resolvedChannelId = channelByLineId.id;
+        }
+      }
+      where.channelId = resolvedChannelId;
+    }
     if (userId) where.userId = userId;
     if (type) where.type = type;
     if (startDate || endDate) {
@@ -123,7 +135,16 @@ router.get('/search', [
     };
 
     if (channelId) {
-      where.channelId = channelId;
+      // Support Channel.id or Channel.lineId
+      let resolvedChannelId = channelId;
+      const channelById = await prisma.channel.findUnique({ where: { id: channelId } });
+      if (!channelById) {
+        const channelByLineId = await prisma.channel.findUnique({ where: { lineId: channelId } });
+        if (channelByLineId) {
+          resolvedChannelId = channelByLineId.id;
+        }
+      }
+      where.channelId = resolvedChannelId;
     }
 
     // Search messages
@@ -191,9 +212,12 @@ router.get('/channel/:channelId', [
     const skip = (page - 1) * limit;
 
     // Check if channel exists
-    const channel = await prisma.channel.findUnique({
+    let channel = await prisma.channel.findUnique({
       where: { id: channelId }
     });
+    if (!channel) {
+      channel = await prisma.channel.findUnique({ where: { lineId: channelId } });
+    }
 
     if (!channel) {
       return res.status(404).json({
@@ -205,7 +229,7 @@ router.get('/channel/:channelId', [
     // Get messages for the channel
     const [messages, total] = await Promise.all([
       prisma.message.findMany({
-        where: { channelId },
+        where: { channelId: channel.id },
         include: {
           user: {
             select: {
@@ -219,7 +243,7 @@ router.get('/channel/:channelId', [
         skip,
         take: limit
       }),
-      prisma.message.count({ where: { channelId } })
+      prisma.message.count({ where: { channelId: channel.id } })
     ]);
 
     res.json({

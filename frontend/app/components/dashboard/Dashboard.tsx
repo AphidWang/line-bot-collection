@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
+import { API_BASE_URL } from '@/app/lib/api';
 import { auth } from '@/app/firebase';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -10,6 +11,8 @@ import { MessageSquare, LogOut, Filter, Eye, Brain, Calendar, RefreshCw, Setting
 import MessageTable from './MessageTable';
 import SummaryModal from './SummaryModal';
 import ChannelManager from './ChannelManager';
+import GroupList from './GroupList';
+import ChatInterface from './ChatInterface';
 
 interface Message {
   id: number;
@@ -17,6 +20,29 @@ interface Message {
   user_id: string;
   timestamp: string;
   message: string;
+}
+
+interface Group {
+  id: string;
+  lineId: string;
+  name: string;
+  pictureUrl?: string;
+  channelId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  _count: {
+    messages: number;
+  };
+  messages: Array<{
+    id: string;
+    content: string;
+    timestamp: string;
+    type: string;
+    user: {
+      name: string;
+    };
+  }>;
 }
 
 interface JwtUser {
@@ -33,7 +59,9 @@ export default function Dashboard() {
   const [showChannelManager, setShowChannelManager] = useState(false);
   const [jwtUser, setJwtUser] = useState<JwtUser | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [userChannels, setUserChannels] = useState<any[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -105,7 +133,7 @@ export default function Dashboard() {
         return;
       }
 
-      let url = 'https://lucentis.zeabur.app/api/messages';
+      let url = `${API_BASE_URL}/api/messages`;
       if (selectedChannel) {
         url += `?channelId=${selectedChannel}`;
       }
@@ -149,7 +177,7 @@ export default function Dashboard() {
 
       if (!token) return;
 
-      const response = await fetch('https://lucentis.zeabur.app/api/user-channels', {
+      const response = await fetch(`${API_BASE_URL}/api/user-channels`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -212,6 +240,43 @@ export default function Dashboard() {
     fetchMessages();
   };
 
+  const handleGroupSelect = (group: Group) => {
+    setSelectedGroup(group);
+  };
+
+  const handleMarkAsRead = async (messageId: string) => {
+    if (!selectedGroup) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      await fetch(`${API_BASE_URL}/api/groups/${selectedGroup.id}/read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageId })
+      });
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      startDate: '',
+      endDate: '',
+      groupId: ''
+    });
+    setShowFilters(false);
+    // Trigger filter apply
+    setTimeout(() => {
+      applyFilters();
+    }, 100);
+  };
+
   // 取得所有群組
   const getChannels = () => {
     const channels = new Set(messages.map(m => m.group_id));
@@ -259,10 +324,28 @@ export default function Dashboard() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <MessageSquare className="h-8 w-8 text-blue-600 mr-3" />
+            <div className="flex items-center space-x-4">
+              <MessageSquare className="h-8 w-8 text-blue-600" />
               <h1 className="text-xl font-semibold text-gray-900">LINE Assistant</h1>
+              
+              {/* Account Selector */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">帳號:</span>
+                <select
+                  className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  value={selectedChannel || ''}
+                  onChange={(e) => setSelectedChannel(e.target.value || null)}
+                >
+                  <option value="">選擇帳號</option>
+                  {userChannels.map((channel) => (
+                    <option key={channel.id} value={channel.channelId}>
+                      {channel.alias ? `${channel.alias} - ${channel.channelId}` : channel.channelId}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+            
             <div className="flex items-center space-x-4">
               <Button
                 onClick={() => setShowChannelManager(true)}
@@ -271,7 +354,7 @@ export default function Dashboard() {
                 className="flex items-center space-x-2"
               >
                 <Settings className="h-4 w-4" />
-                <span>頻道設定</span>
+                <span>帳號設定</span>
               </Button>
               <span className="text-sm text-gray-600">
                 {getCurrentUserEmail()}
@@ -324,70 +407,72 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Filter className="h-5 w-5 mr-2" />
-              篩選條件
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  選擇頻道
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedChannel || ''}
-                  onChange={(e) => setSelectedChannel(e.target.value || null)}
-                >
-                  <option value="">所有頻道</option>
-                  {userChannels.map((channel) => (
-                    <option key={channel.id} value={channel.channelId}>
-                      {channel.channelId} ({channel.status})
-                    </option>
-                  ))}
-                </select>
+        {/* Filters - Initially Hidden */}
+        {showFilters && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Filter className="h-5 w-5 mr-2" />
+                  篩選條件
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => setShowFilters(false)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    篩選
+                  </Button>
+                  <Button
+                    onClick={handleClearFilters}
+                    variant="outline"
+                    size="sm"
+                  >
+                    清除所有篩選
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    開始日期
+                  </label>
+                  <Input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    結束日期
+                  </label>
+                  <Input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    群組 ID
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="輸入群組 ID"
+                    value={filters.groupId}
+                    onChange={(e) => setFilters(prev => ({ ...prev, groupId: e.target.value }))}
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  開始日期
-                </label>
-                <Input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  結束日期
-                </label>
-                <Input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  群組 ID
-                </label>
-                <Input
-                  type="text"
-                  placeholder="輸入群組 ID"
-                  value={filters.groupId}
-                  onChange={(e) => setFilters(prev => ({ ...prev, groupId: e.target.value }))}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <div className="flex justify-between items-center mb-6">
@@ -400,6 +485,15 @@ export default function Dashboard() {
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               重新整理
+            </Button>
+            
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="outline"
+              size="sm"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              {showFilters ? '隱藏' : '顯示'}篩選
             </Button>
             
             <Button
@@ -422,67 +516,131 @@ export default function Dashboard() {
           </div>
           
           <div className="text-sm text-gray-500">
-            共 {filteredMessages.length} 條訊息
+            {selectedGroup ? `群組: ${selectedGroup.name}` : '請選擇帳號查看群組'}
           </div>
         </div>
 
-        {/* Messages Display */}
-        {showRawMessages && (
-          <div className="space-y-6">
-            {getChannels().map((channelId) => (
-              <Card key={channelId}>
+        {/* Main Content Area */}
+        {selectedChannel ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)]">
+            {/* Groups List */}
+            <div className="lg:col-span-1">
+              <Card className="h-full">
                 <CardHeader>
-                  <CardTitle 
-                    className="cursor-pointer hover:text-blue-600"
-                    onClick={() => {
-                      const actualChannelId = getChannelIdByName(channelId);
-                      setSelectedChannel(selectedChannel === actualChannelId ? null : actualChannelId);
-                    }}
-                  >
-                    {channelId}
-                    <span className="ml-2 text-sm text-gray-500">
-                      ({getChannelMessages(channelId).length} 條訊息)
-                    </span>
-                  </CardTitle>
+                  <CardTitle>群組列表</CardTitle>
                 </CardHeader>
-                {selectedChannel === getChannelIdByName(channelId) && (
-                  <CardContent>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {getChannelMessages(channelId).map((message) => (
-                        <div key={message.id} className="flex flex-col">
-                          <div className={`flex ${message.user_id === getCurrentUserEmail() ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              message.user_id === getCurrentUserEmail() 
-                                ? 'bg-white border border-gray-300' 
-                                : `${getUserColor(message.user_id)} text-white`
-                            }`}>
-                              <div className="text-sm font-medium mb-1">
-                                {message.user_id === getCurrentUserEmail() ? '我' : message.user_id}
-                              </div>
-                              <div className="text-sm">{message.message}</div>
-                            </div>
-                          </div>
-                          <div className={`text-xs text-gray-500 mt-1 ${
-                            message.user_id === getCurrentUserEmail() ? 'text-right' : 'text-left'
-                          }`}>
-                            {new Date(message.timestamp).toLocaleDateString('zh-TW', {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              weekday: 'short'
-                            }).replace(/\//g, '/')} {new Date(message.timestamp).toLocaleTimeString('zh-TW', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: false
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
+                <CardContent className="h-[calc(100%-80px)] overflow-y-auto">
+                  <GroupList
+                    selectedChannelId={selectedChannel}
+                    onGroupSelect={handleGroupSelect}
+                    selectedGroup={selectedGroup}
+                  />
+                </CardContent>
               </Card>
-            ))}
+            </div>
+
+            {/* Chat Interface */}
+            <div className="lg:col-span-2">
+              <Card className="h-full">
+                <CardContent className="p-0 h-full">
+                  {selectedGroup ? (
+                    <ChatInterface
+                      group={selectedGroup}
+                      onMarkAsRead={handleMarkAsRead}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <div className="text-center">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p>請選擇一個群組開始聊天</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">歡迎使用 LINE Assistant</h3>
+            <p className="text-gray-600 mb-4">請先選擇一個帳號來查看群組和訊息</p>
+            <Button
+              onClick={() => setShowChannelManager(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              管理帳號
+            </Button>
+          </div>
+        )}
+
+        {/* Raw Messages Display (Legacy) */}
+        {showRawMessages && (
+          <div className="mt-8 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>原始訊息檢視</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {getChannels().map((channelId) => (
+                    <Card key={channelId}>
+                      <CardHeader>
+                        <CardTitle 
+                          className="cursor-pointer hover:text-blue-600"
+                          onClick={() => {
+                            const actualChannelId = getChannelIdByName(channelId);
+                            setSelectedChannel(selectedChannel === actualChannelId ? null : actualChannelId);
+                          }}
+                        >
+                          {channelId}
+                          <span className="ml-2 text-sm text-gray-500">
+                            ({getChannelMessages(channelId).length} 條訊息)
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      {selectedChannel === getChannelIdByName(channelId) && (
+                        <CardContent>
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {getChannelMessages(channelId).map((message) => (
+                              <div key={message.id} className="flex flex-col">
+                                <div className={`flex ${message.user_id === getCurrentUserEmail() ? 'justify-end' : 'justify-start'}`}>
+                                  <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                    message.user_id === getCurrentUserEmail() 
+                                      ? 'bg-white border border-gray-300' 
+                                      : `${getUserColor(message.user_id)} text-white`
+                                  }`}>
+                                    <div className="text-sm font-medium mb-1">
+                                      {message.user_id === getCurrentUserEmail() ? '我' : message.user_id}
+                                    </div>
+                                    <div className="text-sm">{message.message}</div>
+                                  </div>
+                                </div>
+                                <div className={`text-xs text-gray-500 mt-1 ${
+                                  message.user_id === getCurrentUserEmail() ? 'text-right' : 'text-left'
+                                }`}>
+                                  {new Date(message.timestamp).toLocaleDateString('zh-TW', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    weekday: 'short'
+                                  }).replace(/\//g, '/')} {new Date(message.timestamp).toLocaleTimeString('zh-TW', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -498,7 +656,7 @@ export default function Dashboard() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">頻道管理</h2>
+                <h2 className="text-xl font-semibold">帳號管理</h2>
                 <Button
                   onClick={() => setShowChannelManager(false)}
                   variant="outline"

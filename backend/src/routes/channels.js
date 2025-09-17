@@ -116,14 +116,14 @@ router.get('/with-new-messages', async (req, res) => {
   }
 });
 
-// Get channel by ID
-router.get('/:id', async (req, res) => {
+// Get channel by lineId
+router.get('/:lineId', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { lineId } = req.params;
     const userId = req.user.id;
 
     const channel = await prisma.channel.findUnique({
-      where: { id },
+      where: { lineId },
       include: {
         userChannels: {
           where: { userId },
@@ -164,8 +164,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Toggle channel tracking
-router.post('/:id/track', [
+// Toggle channel tracking by lineId
+router.post('/:lineId/track', [
   body('isTracked').isBoolean()
 ], async (req, res) => {
   try {
@@ -177,13 +177,13 @@ router.post('/:id/track', [
       });
     }
 
-    const { id } = req.params;
+    const { lineId } = req.params;
     const { isTracked } = req.body;
     const userId = req.user.id;
 
     // Check if channel exists
     const channel = await prisma.channel.findUnique({
-      where: { id }
+      where: { lineId }
     });
 
     if (!channel) {
@@ -198,7 +198,7 @@ router.post('/:id/track', [
       where: {
         userId_channelId: {
           userId,
-          channelId: id
+          channelId: lineId
         }
       },
       update: {
@@ -206,14 +206,14 @@ router.post('/:id/track', [
       },
       create: {
         userId,
-        channelId: id,
+        channelId: lineId,
         isTracked
       }
     });
 
     res.json({
       message: `Channel ${isTracked ? 'tracking enabled' : 'tracking disabled'}`,
-      channelId: id,
+      lineId,
       isTracked
     });
   } catch (error) {
@@ -225,10 +225,10 @@ router.post('/:id/track', [
   }
 });
 
-// Get channel statistics
-router.get('/:id/stats', async (req, res) => {
+// Get channel statistics by lineId
+router.get('/:lineId/stats', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { lineId } = req.params;
     const { days = 30 } = req.query;
 
     const cutoffDate = new Date();
@@ -236,7 +236,7 @@ router.get('/:id/stats', async (req, res) => {
 
     // Check if channel exists
     const channel = await prisma.channel.findUnique({
-      where: { id }
+      where: { lineId }
     });
 
     if (!channel) {
@@ -248,16 +248,16 @@ router.get('/:id/stats', async (req, res) => {
 
     // Get message statistics
     const [totalMessages, recentMessages, messageTypes] = await Promise.all([
-      prisma.message.count({ where: { channelId: id } }),
+      prisma.message.count({ where: { channelId: channel.id } }),
       prisma.message.count({
         where: {
-          channelId: id,
+          channelId: channel.id,
           timestamp: { gte: cutoffDate }
         }
       }),
       prisma.message.groupBy({
         by: ['type'],
-        where: { channelId: id },
+        where: { channelId: channel.id },
         _count: { type: true }
       })
     ]);
@@ -265,12 +265,12 @@ router.get('/:id/stats', async (req, res) => {
     // Get user statistics
     const uniqueUsers = await prisma.message.groupBy({
       by: ['userId'],
-      where: { channelId: id },
+      where: { channelId: channel.id },
       _count: { userId: true }
     });
 
     const stats = {
-      channelId: id,
+      lineId,
       channelName: channel.name,
       period: `${days} days`,
       totalMessages,

@@ -13,7 +13,8 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || process.env.SECRET_KEY || 'fallback-secret-key';
+    const decoded = jwt.verify(token, secret);
     
     // Get user from database
     const user = await prisma.user.findUnique({

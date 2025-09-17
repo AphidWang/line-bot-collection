@@ -21,6 +21,7 @@ Line Assistant 專案需要配置環境變數來支援不同的功能和部署�
 | `NODE_ENV` | 環境模式 | `production` |
 | `POSTGRES_CONNECTION_STRING` | PostgreSQL 連線字串 | `postgresql://user:pass@host:port/db` |
 | `JWT_SECRET` | JWT 簽名密鑰 | `your-super-secret-key` |
+| `DB_READONLY` | 當連到生產資料庫時，阻擋任何寫入操作 | `true`/`false` |
 
 ### 可選變數
 
