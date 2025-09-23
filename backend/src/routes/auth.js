@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { prisma } = require('../config/database');
-const { initializeFirebase } = require('../services/firebaseService');
+const { verifyIdToken } = require('../services/firebaseService');
 
 const router = express.Router();
 
@@ -157,24 +157,18 @@ router.post('/firebase', async (req, res) => {
       });
     }
 
-    // Check if Firebase is enabled
-    if (!process.env.FIREBASE_PROJECT_ID) {
-      return res.status(503).json({
-        error: 'Service unavailable',
-        message: 'Firebase authentication is not enabled'
+    // 驗證 ID Token（會確保已初始化）
+    const decodedToken = await verifyIdToken(idToken);
+
+    // Find or create user（若為唯讀模式且查無，返回 403）
+    let user = await prisma.user.findUnique({ where: { firebaseUid: decodedToken.uid } });
+    if (!user && process.env.DB_READONLY === 'true') {
+      return res.status(403).json({
+        error: 'Registration disabled',
+        message: 'User not found and database is read-only. Ask admin to provision your account.'
       });
     }
-
-    const firebase = initializeFirebase();
-    const decodedToken = await firebase.auth().verifyIdToken(idToken);
-
-    // Find or create user
-    let user = await prisma.user.findUnique({
-      where: { firebaseUid: decodedToken.uid }
-    });
-
     if (!user) {
-      // Create new user from Firebase
       user = await prisma.user.create({
         data: {
           email: decodedToken.email,
@@ -182,13 +176,7 @@ router.post('/firebase', async (req, res) => {
           avatar: decodedToken.picture,
           firebaseUid: decodedToken.uid
         },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-          createdAt: true
-        }
+        select: { id: true, email: true, name: true, avatar: true, createdAt: true }
       });
     }
 
@@ -206,10 +194,11 @@ router.post('/firebase', async (req, res) => {
     });
   } catch (error) {
     console.error('Firebase auth error:', error);
-    res.status(401).json({
-      error: 'Authentication failed',
-      message: 'Invalid Firebase token'
-    });
+    const isReadonlyBlock = typeof error.message === 'string' && error.message.includes('[DB_READONLY]');
+    if (isReadonlyBlock) {
+      return res.status(503).json({ error: 'Service unavailable', message: 'Database is read-only' });
+    }
+    return res.status(401).json({ error: 'Authentication failed', message: 'Invalid Firebase token' });
   }
 });
 

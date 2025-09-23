@@ -4,8 +4,8 @@
   "description": "Line Assistant Backend API",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "dev": "PORT=${PORT:-4528} nodemon src/index.js",
+    "start": "PORT=${PORT:-4528} node src/index.js",
     "build": "npm run build:prisma",
     "build:prisma": "prisma generate",
     "db:migrate": "prisma migrate dev",

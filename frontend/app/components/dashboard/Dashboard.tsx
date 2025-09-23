@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
-import { API_BASE_URL } from '@/app/lib/api';
+import { API_BASE_URL, authAPI, API_ENDPOINTS } from '@/app/lib/api';
 import { auth } from '@/app/firebase';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -69,41 +69,52 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    // 檢查 JWT token
-    const checkJwtToken = () => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.exp * 1000 > Date.now()) {
-            setJwtUser({
-              email: payload.sub,
-              user_type: 'jwt'
-            });
-            return true;
-          } else {
-            localStorage.removeItem('access_token');
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error('JWT token 解析失敗:', error);
+    // 檢查 JWT token，若有效則視為已登入
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 > Date.now() && payload.userId) {
+          setJwtUser({
+            email: '',
+            user_type: 'jwt'
+          });
+          return;
+        } else {
           localStorage.removeItem('access_token');
-          window.location.reload();
         }
+      } catch (error) {
+        console.error('JWT token 解析失敗:', error);
+        localStorage.removeItem('access_token');
       }
-      return false;
+    }
+
+    // 若沒有後端 JWT，但 Firebase 使用者存在，自動交換 JWT
+    const exchangeIfFirebase = async () => {
+      try {
+        if (auth && auth.currentUser) {
+          const idToken = await auth.currentUser.getIdToken();
+          const data = await authAPI.firebaseLogin(idToken);
+          localStorage.setItem('access_token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setJwtUser({ email: data.user.email, user_type: 'jwt' });
+        }
+      } catch (e) {
+        console.error('自動交換後端 JWT 失敗:', e);
+      }
     };
 
-    checkJwtToken();
+    exchangeIfFirebase();
   }, []);
 
-  // 當 jwtUser 或 auth.currentUser 改變時才獲取訊息和頻道
+  // 僅當取得後端 JWT 後才獲取資料
   useEffect(() => {
-    if (jwtUser || (auth && auth.currentUser)) {
+    const jwt = localStorage.getItem('access_token');
+    if (jwt) {
       fetchMessages();
       fetchUserChannels();
     }
-  }, [jwtUser, auth?.currentUser]);
+  }, [jwtUser]);
 
   // 當選擇的頻道改變時重新載入訊息
   useEffect(() => {
@@ -119,18 +130,10 @@ export default function Dashboard() {
   const fetchMessages = async () => {
     setIsLoading(true);
     try {
-      let token;
-      if (jwtUser) {
-        // JWT 用戶
-        token = localStorage.getItem('access_token');
-      } else if (auth && auth.currentUser) {
-        // Firebase 用戶
-        token = await auth.currentUser.getIdToken();
-      }
-
+      const token = localStorage.getItem('access_token');
       if (!token) {
         console.error('No valid token found');
-        return;
+        return; // 還沒換到後端 JWT，不打 API 避免 401
       }
 
       let url = `${API_BASE_URL}/api/messages`;
@@ -168,26 +171,40 @@ export default function Dashboard() {
 
   const fetchUserChannels = async () => {
     try {
-      let token;
-      if (jwtUser) {
-        token = localStorage.getItem('access_token');
-      } else if (auth && auth.currentUser) {
-        token = await auth.currentUser.getIdToken();
-      }
+      const token = localStorage.getItem('access_token');
+      if (!token) return; // 等待拿到後端 JWT
 
-      if (!token) return;
-
-      const response = await fetch(`${API_BASE_URL}/api/user-channels`, {
+      // 自有頻道
+      const respOwned = await fetch(`${API_BASE_URL}/api/user-channels`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      const owned = respOwned.ok ? (await respOwned.json()).channels || [] : [];
 
-      if (response.ok) {
-        const data = await response.json();
-        setUserChannels(data.channels || []);
-      }
+      // 被分享的頻道
+      const respShared = await fetch(API_ENDPOINTS.SHARES.GET_SHARED_CHANNELS, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const sharedRaw = respShared.ok ? await respShared.json() : { channels: [] };
+      const shared = (sharedRaw.channels || []).map((c: any) => ({
+        // 從後端 shared-channels 轉成下拉與後續流程需要的結構
+        id: c.id, // channel.id
+        channelId: c.lineId, // 下拉用的 value，後端 API 以 lineId 查找
+        alias: c.name,
+        status: c.status || 'active',
+        webhookUrl: '',
+        createdAt: c.createdAt || new Date().toISOString(),
+        isShared: true,
+        isOwner: false,
+        sharedBy: c.sharedBy,
+      }));
+
+      setUserChannels([...(owned || []), ...shared]);
     } catch (error) {
       console.error('Error fetching user channels:', error);
     }
@@ -219,14 +236,17 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     try {
-      if (jwtUser) {
-        // JWT 用戶登出
-        localStorage.removeItem('access_token');
-        window.location.reload();
-      } else if (auth && auth.currentUser) {
-        // Firebase 用戶登出
-        await signOut(auth);
+      // 先嘗試登出 Firebase（若存在）
+      if (auth && auth.currentUser) {
+        try { await signOut(auth); } catch (e) { console.warn('Firebase signOut error (ignored):', e); }
       }
+
+      // 一律清除本地 JWT 與使用者資料
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      
+      // 強制回到登入頁
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
     }

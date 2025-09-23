@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
-import { Plus, Trash2, Settings, CheckCircle, XCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react';
-import { userChannelsAPI } from '@/app/lib/api';
+import { Plus, Trash2, Settings, CheckCircle, XCircle, AlertCircle, Copy, ExternalLink, Share2, Users, X } from 'lucide-react';
+import { userChannelsAPI, sharesAPI } from '@/app/lib/api';
 
 interface UserChannel {
   id: string;
@@ -14,6 +14,13 @@ interface UserChannel {
   status: 'active' | 'inactive' | 'error';
   webhookUrl: string;
   createdAt: string;
+  isOwner?: boolean;
+  isShared?: boolean;
+  sharedBy?: {
+    id: string;
+    email: string;
+    name?: string;
+  };
 }
 
 interface ChannelManagerProps {
@@ -24,6 +31,10 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
   const [channels, setChannels] = useState<UserChannel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showShareForm, setShowShareForm] = useState<string | null>(null);
+  const [shareEmail, setShareEmail] = useState('');
+  const [showSharesList, setShowSharesList] = useState<string | null>(null);
+  const [shares, setShares] = useState<any[]>([]);
   const [newChannel, setNewChannel] = useState({
     channelId: '',
     accessToken: '',
@@ -133,6 +144,63 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
     } catch (error) {
       console.error('Failed to copy:', error);
       alert('複製失敗，請手動複製');
+    }
+  };
+
+  // 分享頻道
+  const handleShareChannel = async (channelId: string) => {
+    if (!shareEmail.trim()) {
+      alert('請輸入 email');
+      return;
+    }
+
+    try {
+      await sharesAPI.shareChannel(channelId, shareEmail);
+      alert('頻道分享成功');
+      setShareEmail('');
+      setShowShareForm(null);
+      fetchChannelShares(channelId);
+    } catch (error: any) {
+      console.error('Failed to share channel:', error);
+      alert(`分享失敗: ${error.message}`);
+    }
+  };
+
+  // 取消分享頻道
+  const handleUnshareChannel = async (channelId: string, userId: string) => {
+    if (!confirm('確定要取消分享嗎？')) return;
+
+    try {
+      await sharesAPI.unshareChannel(channelId, userId);
+      alert('已取消分享');
+      fetchChannelShares(channelId);
+    } catch (error) {
+      console.error('Failed to unshare channel:', error);
+      alert('取消分享失敗');
+    }
+  };
+
+  // 獲取頻道分享列表
+  const fetchChannelShares = async (channelId: string) => {
+    try {
+      const data = await sharesAPI.getChannelShares(channelId);
+      setShares(data.shares || []);
+    } catch (error) {
+      console.error('Failed to fetch channel shares:', error);
+    }
+  };
+
+  // 移除被分享的頻道
+  const handleRemoveSharedChannel = async (channelId: string) => {
+    if (!confirm('確定要移除這個分享的頻道嗎？')) return;
+
+    try {
+      await sharesAPI.removeSharedChannel(channelId);
+      alert('已移除分享的頻道');
+      fetchChannels();
+    } catch (error) {
+      console.error('Failed to remove shared channel:', error);
+      alert('移除失敗');
     }
   };
 
@@ -266,6 +334,11 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
                   {channel.alias ? `${channel.alias} (${channel.channelId})` : channel.channelId}
+                  {channel.isShared && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      分享自 {channel.sharedBy?.name || channel.sharedBy?.email}
+                    </span>
+                  )}
                 </CardTitle>
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(channel.status)}
@@ -287,31 +360,69 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                   <Settings className="h-4 w-4 mr-1" />
                   查看訊息
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleUpdateAlias(channel.channelId)}
-                >
-                  設定別名
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleUpdateStatus(
-                    channel.channelId,
-                    channel.status === 'active' ? 'inactive' : 'active'
-                  )}
-                >
-                  {channel.status === 'active' ? '停用' : '啟用'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDeleteChannel(channel.channelId)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                
+                {/* 只有擁有者才能看到管理按鈕 */}
+                {channel.isOwner !== false && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleUpdateAlias(channel.channelId)}
+                    >
+                      設定別名
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleUpdateStatus(
+                        channel.channelId,
+                        channel.status === 'active' ? 'inactive' : 'active'
+                      )}
+                    >
+                      {channel.status === 'active' ? '停用' : '啟用'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowShareForm(channel.channelId)}
+                    >
+                      <Share2 className="h-4 w-4 mr-1" />
+                      分享
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setShowSharesList(channel.channelId);
+                        fetchChannelShares(channel.channelId);
+                      }}
+                    >
+                      <Users className="h-4 w-4 mr-1" />
+                      分享列表
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteChannel(channel.channelId)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                
+                {/* 被分享的頻道只能移除 */}
+                {channel.isShared && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRemoveSharedChannel(channel.channelId)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    移除
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -345,6 +456,103 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
       {channels.length === 0 && !isLoading && (
         <div className="text-center py-8 text-gray-500">
           還沒有添加任何帳號
+        </div>
+      )}
+
+      {/* 分享表單 Modal */}
+      {showShareForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>分享頻道</CardTitle>
+              <CardDescription>
+                輸入對方的 email 來分享頻道
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="輸入對方的 email"
+                    required
+                  />
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => handleShareChannel(showShareForm)}
+                    disabled={!shareEmail.trim()}
+                  >
+                    分享
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowShareForm(null);
+                      setShareEmail('');
+                    }}
+                  >
+                    取消
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 分享列表 Modal */}
+      {showSharesList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg mx-4">
+            <CardHeader>
+              <CardTitle>分享列表</CardTitle>
+              <CardDescription>
+                管理此頻道的分享對象
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {shares.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">還沒有分享給任何人</p>
+                ) : (
+                  <div className="space-y-2">
+                    {shares.map((share) => (
+                      <div key={share.id} className="flex items-center justify-between p-3 border rounded">
+                        <div>
+                          <p className="font-medium">{share.sharedWith.name || share.sharedWith.email}</p>
+                          <p className="text-sm text-gray-500">
+                            分享於 {new Date(share.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUnshareChannel(showSharesList, share.sharedWith.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          取消分享
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSharesList(null)}
+                  >
+                    關閉
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

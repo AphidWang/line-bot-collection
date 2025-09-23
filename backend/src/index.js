@@ -23,9 +23,10 @@ const summaryRoutes = require('./routes/summaries');
 const lineWebhookRoutes = require('./routes/lineWebhook');
 const userChannelRoutes = require('./routes/userChannels');
 const groupRoutes = require('./routes/groups');
+const shareRoutes = require('./routes/shares');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 4528;
 
 // 設定 trust proxy (在 Zeabur 等反向代理環境中需要)
 app.set('trust proxy', 1);
@@ -38,12 +39,13 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://bot-collection.zeabur.app', 'https://lucentis.zeabur.app'] 
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://bot-collection.zeabur.app', 'https://lucentis.zeabur.app']
+    : true, // 開發環境允許所有來源，避免 popup/redirect 造成跨域問題
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204,
 }));
 
 // Rate limiting
@@ -94,6 +96,7 @@ app.use('/api/summaries', summaryRoutes);
 app.use('/api/line', lineWebhookRoutes);
 app.use('/api/user-channels', userChannelRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/shares', shareRoutes);
 
 // Error handling middleware
 app.use(notFound);

@@ -62,7 +62,29 @@ export default function Home() {
       }
     };
 
-    checkFirebase();
+    const unsubscribePromise = checkFirebase();
+
+    // 監聽 JWT 更新事件，觸發重新評估 jwtUser
+    const onJwtUpdated = () => {
+      const token = localStorage.getItem('access_token');
+      const userData = localStorage.getItem('user');
+      if (token && userData) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp * 1000 > Date.now()) {
+            const user = JSON.parse(userData);
+            setJwtUser({ email: user.email, user_type: 'jwt' });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('jwt-updated', onJwtUpdated);
+
+    return () => {
+      window.removeEventListener('jwt-updated', onJwtUpdated);
+      // 若 checkFirebase 回傳的是 unsubscribe 函式，呼叫它
+      Promise.resolve(unsubscribePromise).then((fn: any) => { if (typeof fn === 'function') fn(); });
+    };
   }, []);
 
   if (loading) {

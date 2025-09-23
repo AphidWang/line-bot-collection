@@ -36,6 +36,17 @@ const initializeFirebase = () => {
   }
 };
 
+/**
+ * Ensure firebase is initialized and verify an ID token
+ */
+const verifyIdToken = async (idToken) => {
+  const app = initializeFirebase();
+  if (!app) {
+    throw new Error('Firebase not initialized');
+  }
+  return admin.auth().verifyIdToken(idToken);
+};
+
 const isFirebaseEnabled = () => {
   return firebaseApp !== null;
 };
@@ -50,5 +61,6 @@ const getFirebaseApp = () => {
 module.exports = {
   initializeFirebase,
   isFirebaseEnabled,
-  getFirebaseApp
+  getFirebaseApp,
+  verifyIdToken
 };

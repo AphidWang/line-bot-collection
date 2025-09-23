@@ -3,7 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
   ? (process.env.NEXT_PUBLIC_API_URL.startsWith('http') 
       ? process.env.NEXT_PUBLIC_API_URL 
       : `https://${process.env.NEXT_PUBLIC_API_URL}`)
-  : 'http://localhost:3001';
+  : 'http://localhost:4528';
 
 // 調試資訊
 console.log('🔧 API Configuration Debug:');

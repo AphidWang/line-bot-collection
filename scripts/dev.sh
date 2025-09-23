@@ -28,7 +28,7 @@ FRONTEND_PID=$!
 
 echo "✅ 開發環境已啟動！"
 echo "📱 前端: http://localhost:3000"
-echo "🔧 後端: http://localhost:3001"
+echo "🔧 後端: http://localhost:4528"
 echo "📊 資料庫: 連接到 prod 資料庫"
 echo ""
 echo "按 Ctrl+C 停止所有服務"

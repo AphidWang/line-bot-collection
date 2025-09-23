@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from 'firebase/auth';
 import { auth, isFirebaseEnabled } from '@/app/firebase';
 import { Button } from '@/app/components/ui/button';
@@ -14,13 +15,22 @@ export default function LoginForm() {
   const [loginMode, setLoginMode] = useState<'firebase' | 'credentials'>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const router = useRouter();
 
   const signInWithGoogle = async () => {
     if (!auth) return;
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const credential = await signInWithPopup(auth, provider);
+      const idToken = await credential.user.getIdToken();
+      const data = await authAPI.firebaseLogin(idToken);
+      localStorage.setItem('access_token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      // 通知首頁刷新狀態
+      window.dispatchEvent(new Event('jwt-updated'));
+      router.push('/');
+      router.refresh();
     } catch (error) {
       console.error('Google sign-in error:', error);
     } finally {
@@ -33,7 +43,15 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       const provider = new GithubAuthProvider();
-      await signInWithPopup(auth, provider);
+      const credential = await signInWithPopup(auth, provider);
+      const idToken = await credential.user.getIdToken();
+      const data = await authAPI.firebaseLogin(idToken);
+      localStorage.setItem('access_token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      // 通知首頁刷新狀態
+      window.dispatchEvent(new Event('jwt-updated'));
+      router.push('/');
+      router.refresh();
     } catch (error) {
       console.error('GitHub sign-in error:', error);
     } finally {
@@ -49,7 +67,11 @@ export default function LoginForm() {
       // 儲存 token 和用戶資料
       localStorage.setItem('access_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      window.location.reload();
+      // 通知首頁狀態更新
+      window.dispatchEvent(new Event('jwt-updated'));
+      // 以軟導向刷新頁面狀態，避免硬重載造成請求被取消
+      router.push('/');
+      router.refresh();
     } catch (error) {
       console.error('Login error:', error);
       alert('登入失敗，請檢查帳號密碼');

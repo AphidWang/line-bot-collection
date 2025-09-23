@@ -3,7 +3,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
   ? (process.env.NEXT_PUBLIC_API_URL.startsWith('http') 
       ? process.env.NEXT_PUBLIC_API_URL 
       : `https://${process.env.NEXT_PUBLIC_API_URL}`)
-  : 'http://localhost:3001';
+  : 'http://localhost:4528';
 
 // 調試資訊
 console.log('🔧 API Configuration Debug:');
@@ -69,6 +69,15 @@ export const API_ENDPOINTS = {
     DETAIL: `${API_BASE_URL}/api/user-channels`,
     STATUS: (channelId: string) => `${API_BASE_URL}/api/user-channels/${channelId}/status`,
     ALIAS: (channelId: string) => `${API_BASE_URL}/api/user-channels/${channelId}/alias`,
+  },
+  
+  // 分享相關
+  SHARES: {
+    SHARE_CHANNEL: (lineId: string) => `${API_BASE_URL}/api/shares/channels/${lineId}/share`,
+    UNSHARE_CHANNEL: (lineId: string, userId: string) => `${API_BASE_URL}/api/shares/channels/${lineId}/share/${userId}`,
+    GET_CHANNEL_SHARES: (lineId: string) => `${API_BASE_URL}/api/shares/channels/${lineId}/shares`,
+    GET_SHARED_CHANNELS: `${API_BASE_URL}/api/shares/shared-channels`,
+    REMOVE_SHARED_CHANNEL: (lineId: string) => `${API_BASE_URL}/api/shares/shared-channels/${lineId}`,
   },
 };
 
@@ -179,17 +188,17 @@ export const authAPI = {
     return response.json();
   },
   
-  // Firebase 登入
-  firebaseLogin: async (firebaseToken: string) => {
-    const response = await apiRequest(API_ENDPOINTS.AUTH.FIREBASE_LOGIN, {
+  // Firebase 登入（不要用 apiRequest，避免自動附 Authorization 與 401 時登出）
+  firebaseLogin: async (idToken: string) => {
+    const response = await fetch(API_ENDPOINTS.AUTH.FIREBASE_LOGIN, {
       method: 'POST',
-      body: JSON.stringify({ firebaseToken }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
     });
-    
     if (!response.ok) {
-      throw new Error('Firebase 登入失敗');
+      const err = await response.text().catch(() => '');
+      throw new Error(err || 'Firebase 登入失敗');
     }
-    
     return response.json();
   },
 };
@@ -369,6 +378,54 @@ export const userChannelsAPI = {
       body: JSON.stringify({ alias }),
     });
     if (!response.ok) throw new Error('更新頻道別名失敗');
+    return response.json();
+  },
+};
+
+// 分享相關 API
+export const sharesAPI = {
+  // 分享頻道給其他用戶
+  shareChannel: async (lineId: string, email: string) => {
+    const response = await apiRequest(API_ENDPOINTS.SHARES.SHARE_CHANNEL(lineId), {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '分享頻道失敗');
+    }
+    return response.json();
+  },
+  
+  // 取消分享頻道
+  unshareChannel: async (lineId: string, userId: string) => {
+    const response = await apiRequest(API_ENDPOINTS.SHARES.UNSHARE_CHANNEL(lineId, userId), {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('取消分享失敗');
+    return response.json();
+  },
+  
+  // 獲取頻道的分享列表
+  getChannelShares: async (lineId: string) => {
+    const response = await apiRequest(API_ENDPOINTS.SHARES.GET_CHANNEL_SHARES(lineId));
+    if (!response.ok) throw new Error('獲取分享列表失敗');
+    return response.json();
+  },
+  
+  // 獲取被分享的頻道列表
+  getSharedChannels: async () => {
+    const response = await apiRequest(API_ENDPOINTS.SHARES.GET_SHARED_CHANNELS);
+    if (!response.ok) throw new Error('獲取被分享頻道失敗');
+    return response.json();
+  },
+  
+  // 移除被分享的頻道（從自己的視圖中隱藏）
+  removeSharedChannel: async (lineId: string) => {
+    const response = await apiRequest(API_ENDPOINTS.SHARES.REMOVE_SHARED_CHANNEL(lineId), {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('移除分享頻道失敗');
     return response.json();
   },
 };
