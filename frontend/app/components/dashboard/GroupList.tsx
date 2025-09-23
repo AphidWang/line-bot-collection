@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { API_BASE_URL } from '@/app/lib/api';
 import { Button } from '@/app/components/ui/button';
@@ -36,13 +36,14 @@ interface UnreadCount {
   unreadCount: number;
 }
 
-interface GroupListProps {
+export interface GroupListProps {
   selectedChannelId?: string;
   onGroupSelect: (group: Group) => void;
   selectedGroup?: Group | null;
+  refreshTick?: number;
 }
 
-export default function GroupList({ selectedChannelId, onGroupSelect, selectedGroup }: GroupListProps) {
+const GroupList: FC<GroupListProps> = ({ selectedChannelId, onGroupSelect, selectedGroup, refreshTick }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<UnreadCount[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,7 +103,7 @@ export default function GroupList({ selectedChannelId, onGroupSelect, selectedGr
       fetchGroups();
       fetchUnreadCounts();
     }
-  }, [selectedChannelId]);
+  }, [selectedChannelId, refreshTick]);
 
   const getUnreadCount = (groupId: string) => {
     const unread = unreadCounts.find(u => u.groupId === groupId);
@@ -164,7 +165,7 @@ export default function GroupList({ selectedChannelId, onGroupSelect, selectedGr
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 pt-1 pb-1">
       {groups.map((group) => {
         const unreadCount = getUnreadCount(group.id);
         const lastMessage = group.messages[0];
@@ -243,4 +244,6 @@ export default function GroupList({ selectedChannelId, onGroupSelect, selectedGr
       })}
     </div>
   );
-}
+};
+
+export default GroupList;

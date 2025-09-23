@@ -67,6 +67,7 @@ export default function Dashboard() {
     endDate: '',
     groupId: ''
   });
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     // 檢查 JWT token，若有效則視為已登入
@@ -257,10 +258,17 @@ export default function Dashboard() {
   };
 
   const handleRefresh = () => {
+    // 刷新上方統計/舊表格資料
     fetchMessages();
+    // 刷新群組清單與目前選中群組的聊天內容
+    setRefreshTick((t) => t + 1);
   };
 
   const handleGroupSelect = (group: Group) => {
+    // 點擊同一群組時觸發內容刷新
+    if (selectedGroup?.id === group.id) {
+      setRefreshTick((t) => t + 1);
+    }
     setSelectedGroup(group);
   };
 
@@ -549,11 +557,12 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle>群組列表</CardTitle>
                 </CardHeader>
-                <CardContent className="h-[calc(100%-80px)] overflow-y-auto">
+                <CardContent className="h-[calc(100%-80px)] overflow-y-auto pt-2 pb-2">
                   <GroupList
                     selectedChannelId={selectedChannel}
                     onGroupSelect={handleGroupSelect}
                     selectedGroup={selectedGroup}
+                    refreshTick={refreshTick}
                   />
                 </CardContent>
               </Card>
@@ -567,6 +576,7 @@ export default function Dashboard() {
                     <ChatInterface
                       group={selectedGroup}
                       onMarkAsRead={handleMarkAsRead}
+                      refreshTick={refreshTick}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">

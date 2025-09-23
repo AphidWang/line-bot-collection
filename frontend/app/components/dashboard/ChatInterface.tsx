@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type FC } from 'react';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { ArrowDown, Users, Clock, Image, Video, Mic, File, MapPin, Sticker } from 'lucide-react';
-import { API_BASE_URL } from '@/app/lib/api';
+import { API_BASE_URL, API_ENDPOINTS } from '@/app/lib/api';
 
 interface Message {
   id: string;
@@ -24,12 +24,13 @@ interface Group {
   pictureUrl?: string;
 }
 
-interface ChatInterfaceProps {
+export interface ChatInterfaceProps {
   group: Group;
   onMarkAsRead: (messageId: string) => void;
+  refreshTick?: number;
 }
 
-export default function ChatInterface({ group, onMarkAsRead }: ChatInterfaceProps) {
+const ChatInterface: FC<ChatInterfaceProps> = ({ group, onMarkAsRead, refreshTick }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -135,6 +136,30 @@ export default function ChatInterface({ group, onMarkAsRead }: ChatInterfaceProp
     }
   };
 
+  const isAttachmentLike = (text: string, type?: string) => {
+    if (type && ['image', 'video', 'audio', 'file'].includes(type)) return true;
+    return /\[(圖片|影片|語音|檔案)\]/.test(text || '');
+  };
+
+  const openSignedUrl = async (id: string) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return alert('尚未登入');
+      const resp = await fetch(API_ENDPOINTS.MESSAGES.SIGNED_URL(id), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({} as any));
+        return alert(err.error || '取得下載連結失敗');
+      }
+      const data = await resp.json();
+      window.open(data.url, '_blank');
+    } catch (e) {
+      console.error('openSignedUrl error:', e);
+      alert('開啟連結失敗');
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('zh-TW', { 
@@ -182,7 +207,7 @@ export default function ChatInterface({ group, onMarkAsRead }: ChatInterfaceProp
     setPage(1);
     setHasMore(true);
     fetchMessages(1, false);
-  }, [group.id]);
+  }, [group.id, refreshTick]);
 
   // Group messages by date
   const groupedMessages = messages.reduce((acc, message, index) => {
@@ -274,9 +299,15 @@ export default function ChatInterface({ group, onMarkAsRead }: ChatInterfaceProp
                     <div className={`ml-8 ${isConsecutive ? 'mt-0' : ''}`}>
                       <div className="flex items-center space-x-2">
                         {getMessageIcon(message.type)}
-                        <span className="text-gray-800 break-words">
-                          {message.content}
-                        </span>
+                        <span className="text-gray-800 break-words">{message.content}</span>
+                        {isAttachmentLike(message.content, message.type) && (
+                          <button
+                            className="text-blue-600 hover:underline whitespace-nowrap text-sm"
+                            onClick={() => openSignedUrl(String(message.id))}
+                          >
+                            下載/預覽
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -311,4 +342,6 @@ export default function ChatInterface({ group, onMarkAsRead }: ChatInterfaceProp
       )}
     </div>
   );
-}
+};
+
+export default ChatInterface;
