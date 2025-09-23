@@ -2,9 +2,10 @@
 
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import { API_ENDPOINTS } from '@/app/lib/api';
 
 interface Message {
-  id: number;
+  id: string | number;
   group_id: string;
   user_id: string;
   timestamp: string;
@@ -16,6 +17,25 @@ interface MessageTableProps {
 }
 
 export default function MessageTable({ messages }: MessageTableProps) {
+  const openSignedUrl = async (id: string) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return alert('尚未登入');
+      const resp = await fetch(API_ENDPOINTS.MESSAGES.SIGNED_URL(id), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!resp.ok) return alert('取得下載連結失敗');
+      const data = await resp.json();
+      window.open(data.url, '_blank');
+    } catch (e) {
+      console.error('openSignedUrl error:', e);
+      alert('開啟連結失敗');
+    }
+  };
+
+  const isAttachmentLike = (text: string) => {
+    return /\[(圖片|影片|語音|檔案)\]/.test(text);
+  };
   if (messages.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -56,8 +76,17 @@ export default function MessageTable({ messages }: MessageTableProps) {
                 {message.user_id}
               </td>
               <td className="px-6 py-4 text-sm text-gray-900 max-w-md">
-                <div className="truncate" title={message.message}>
-                  {message.message}
+                <div className="truncate flex items-center gap-2" title={message.message}>
+                  <span className="flex-1 truncate">{message.message}</span>
+                  {/* 下載/預覽：當內容看起來是附件占位符或包含 R2 key/url 時顯示 */}
+                  {isAttachmentLike(message.message) && (
+                    <button
+                      className="text-blue-600 hover:underline whitespace-nowrap"
+                      onClick={() => openSignedUrl(String(message.id))}
+                    >
+                      下載/預覽
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

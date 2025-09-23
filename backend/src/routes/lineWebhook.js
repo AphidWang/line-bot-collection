@@ -1,6 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
+const axios = require('axios');
 const { prisma } = require('../config/database');
+const { uploadBufferToR2, createSignedGetUrl } = require('../services/r2Service');
 
 const router = express.Router();
 
@@ -269,6 +271,27 @@ const processLineEvent = async (event, webhookChannelId) => {
       timestamp: new Date(timestamp)
     };
 
+    // If attachment types, fetch binary from LINE and upload to R2
+    if (['image', 'video', 'audio', 'file'].includes(message.type)) {
+      try {
+        const content = await fetchLineContent(message.id, webhookChannelId);
+        if (content?.data) {
+          const ext = guessExtFromContentType(content.contentType, message.fileName);
+          const key = `${webhookChannelId}/${lineGroupId}/${message.id}${ext ? '.' + ext : ''}`;
+          const uploaded = await uploadBufferToR2(content.data, key, content.contentType);
+          if (uploaded) {
+            // 統一存 key，讀取時再簽名；若有公共 URL 也一併存
+            const signed = await createSignedGetUrl(uploaded.key, 900);
+            messageData.metadata = { ...messageData.metadata, r2: { url: uploaded.url, key: uploaded.key, signedUrl: signed, contentType: content.contentType, size: content.data.length } };
+            const label = message.type === 'image' ? '圖片' : message.type === 'video' ? '影片' : message.type === 'audio' ? '語音' : '檔案';
+            messageData.content = `[${label}] ${signed || uploaded.url || uploaded.key}`;
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to fetch/upload attachment to R2:', e?.message || e);
+      }
+    }
+
     await prisma.message.create({
       data: messageData
     });
@@ -277,6 +300,56 @@ const processLineEvent = async (event, webhookChannelId) => {
 
   } catch (error) {
     console.error('Error processing Line event:', error);
+  }
+};
+
+// Fetch binary content for a message from LINE content API
+const fetchLineContent = async (messageId, channelId) => {
+  try {
+    const UserChannel = require('../models/UserChannel');
+    const credentials = await UserChannel.getChannelCredentials(channelId);
+    if (!credentials?.accessToken) {
+      console.warn('No access token available for content fetch');
+      return null;
+    }
+    // LINE content API must use api-data domain
+    const url = `https://api-data.line.me/v2/bot/message/${messageId}/content`;
+    const resp = await axios.get(url, {
+      responseType: 'arraybuffer',
+      headers: {
+        Authorization: `Bearer ${credentials.accessToken}`,
+      },
+      validateStatus: () => true,
+    });
+    if (resp.status >= 200 && resp.status < 300) {
+      return { data: Buffer.from(resp.data), contentType: resp.headers['content-type'] };
+    }
+    console.warn('LINE content fetch failed', resp.status);
+  } catch (e) {
+    console.error('Error fetching LINE content:', e?.message || e);
+  }
+  return null;
+};
+
+const guessExtFromContentType = (contentType, fileName) => {
+  if (fileName && fileName.includes('.')) return fileName.split('.').pop();
+  switch (contentType) {
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/png':
+      return 'png';
+    case 'image/gif':
+      return 'gif';
+    case 'video/mp4':
+      return 'mp4';
+    case 'audio/mpeg':
+      return 'mp3';
+    case 'audio/aac':
+      return 'aac';
+    case 'application/pdf':
+      return 'pdf';
+    default:
+      return '';
   }
 };
 

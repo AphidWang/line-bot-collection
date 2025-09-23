@@ -1,6 +1,7 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const { prisma } = require('../config/database');
+const { createSignedGetUrl } = require('../services/r2Service');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -312,3 +313,34 @@ router.get('/:id', async (req, res) => {
 });
 
 module.exports = router;
+
+// 產生附件的即時簽名 URL（只讀）
+// GET /api/messages/:id/signed-url
+router.get('/:id/signed-url', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const expires = Math.min(parseInt(req.query.expires || '900', 10) || 900, 3600); // 上限 1 小時
+
+    const message = await prisma.message.findUnique({ where: { id } });
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const meta = message.metadata || {};
+    const r2 = meta.r2;
+    if (!r2?.key) {
+      return res.status(400).json({ error: 'No attachment for this message' });
+    }
+
+    // 產生簽名 URL
+    const url = await createSignedGetUrl(r2.key, expires, 'inline');
+    if (!url) {
+      return res.status(500).json({ error: 'Failed to create signed URL' });
+    }
+
+    res.json({ url, expiresIn: expires });
+  } catch (error) {
+    console.error('Create signed url error:', error);
+    res.status(500).json({ error: 'Failed to create signed url' });
+  }
+});

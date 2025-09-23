@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     SEARCH: `${API_BASE_URL}/api/messages/search`,
     BY_CHANNEL: `${API_BASE_URL}/api/messages/channel`,
     BY_USER: `${API_BASE_URL}/api/messages/user`,
+    SIGNED_URL: (id: string, expires?: number) => `${API_BASE_URL}/api/messages/${id}/signed-url${expires ? `?expires=${expires}` : ''}`,
   },
   
   // 頻道相關
