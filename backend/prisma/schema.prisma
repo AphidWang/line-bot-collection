@@ -20,6 +20,8 @@ model User {
   summaries    Summary[]
   userChannels UserChannel[]
   userReads    UserRead[]
+  ownedShares  ChannelShare[] @relation("ChannelShareOwner")
+  sharedShares ChannelShare[] @relation("ChannelShareShared")
 
   @@map("users")
 }
@@ -36,6 +38,7 @@ model Channel {
   summaries    Summary[]
   userChannels UserChannel[]
   groups       Group[]
+  shares       ChannelShare[]
 
   @@map("channels")
 }
@@ -124,4 +127,19 @@ model Summary {
 
   @@unique([userId, channelId, date])
   @@map("summaries")
+}
+
+model ChannelShare {
+  id        String   @id @default(cuid())
+  channelId String
+  ownerId   String   // 擁有者 ID
+  sharedWithId String // 被分享者 ID
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  channel   Channel  @relation(fields: [channelId], references: [lineId], onDelete: Cascade)
+  owner     User     @relation("ChannelShareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  sharedWith User    @relation("ChannelShareShared", fields: [sharedWithId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, sharedWithId])
+  @@map("channel_shares")
 }

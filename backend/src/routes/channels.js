@@ -13,8 +13,8 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get channels with tracking status and recent message info
-    const channels = await prisma.channel.findMany({
+    // Get owned channels
+    const ownedChannels = await prisma.channel.findMany({
       include: {
         userChannels: {
           where: { userId },
@@ -34,20 +34,64 @@ router.get('/', async (req, res) => {
       ]
     });
 
-    // Format response
-    const formattedChannels = channels.map(channel => ({
+    // Get shared channels
+    const sharedChannels = await prisma.channelShare.findMany({
+      where: { sharedWithId: userId },
+      include: {
+        channel: {
+          include: {
+            _count: {
+              select: { messages: true }
+            }
+          }
+        },
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            name: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Format owned channels
+    const formattedOwnedChannels = ownedChannels.map(channel => ({
       id: channel.id,
       lineId: channel.lineId,
       name: channel.name,
       pictureUrl: channel.pictureUrl,
       status: channel.status,
       isTracked: channel.userChannels[0]?.isTracked ?? true,
+      isOwner: true,
       messageCount: channel._count.messages,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt
     }));
 
-    res.json({ channels: formattedChannels });
+    // Format shared channels
+    const formattedSharedChannels = sharedChannels.map(share => ({
+      id: share.channel.id,
+      lineId: share.channel.lineId,
+      name: share.channel.name,
+      pictureUrl: share.channel.pictureUrl,
+      status: share.channel.status,
+      isTracked: true, // 被分享的頻道預設為追蹤狀態
+      isOwner: false,
+      isShared: true,
+      sharedBy: share.owner,
+      messageCount: share.channel._count.messages,
+      createdAt: share.channel.createdAt,
+      updatedAt: share.channel.updatedAt,
+      sharedAt: share.createdAt
+    }));
+
+    // Combine and sort all channels
+    const allChannels = [...formattedOwnedChannels, ...formattedSharedChannels]
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+    res.json({ channels: allChannels });
   } catch (error) {
     console.error('Get channels error:', error);
     res.status(500).json({
@@ -66,8 +110,8 @@ router.get('/with-new-messages', async (req, res) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
 
-    // Get channels with new message counts
-    const channels = await prisma.channel.findMany({
+    // Get owned channels with new message counts
+    const ownedChannels = await prisma.channel.findMany({
       include: {
         userChannels: {
           where: { userId },
@@ -93,20 +137,70 @@ router.get('/with-new-messages', async (req, res) => {
       ]
     });
 
-    // Format response
-    const formattedChannels = channels.map(channel => ({
+    // Get shared channels with new message counts
+    const sharedChannels = await prisma.channelShare.findMany({
+      where: { sharedWithId: userId },
+      include: {
+        channel: {
+          include: {
+            _count: {
+              select: {
+                messages: {
+                  where: {
+                    timestamp: { gte: cutoffDate }
+                  }
+                }
+              }
+            }
+          }
+        },
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            name: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Format owned channels
+    const formattedOwnedChannels = ownedChannels.map(channel => ({
       id: channel.id,
       lineId: channel.lineId,
       name: channel.name,
       pictureUrl: channel.pictureUrl,
       status: channel.status,
       isTracked: channel.userChannels[0]?.isTracked ?? true,
+      isOwner: true,
       newMessageCount: channel._count.messages,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt
     }));
 
-    res.json({ channels: formattedChannels });
+    // Format shared channels
+    const formattedSharedChannels = sharedChannels.map(share => ({
+      id: share.channel.id,
+      lineId: share.channel.lineId,
+      name: share.channel.name,
+      pictureUrl: share.channel.pictureUrl,
+      status: share.channel.status,
+      isTracked: true,
+      isOwner: false,
+      isShared: true,
+      sharedBy: share.owner,
+      newMessageCount: share.channel._count.messages,
+      createdAt: share.channel.createdAt,
+      updatedAt: share.channel.updatedAt,
+      sharedAt: share.createdAt
+    }));
+
+    // Combine and sort all channels
+    const allChannels = [...formattedOwnedChannels, ...formattedSharedChannels]
+      .sort((a, b) => b.newMessageCount - a.newMessageCount);
+
+    res.json({ channels: allChannels });
   } catch (error) {
     console.error('Get channels with new messages error:', error);
     res.status(500).json({
@@ -122,7 +216,8 @@ router.get('/:lineId', async (req, res) => {
     const { lineId } = req.params;
     const userId = req.user.id;
 
-    const channel = await prisma.channel.findUnique({
+    // First check if user owns this channel
+    const ownedChannel = await prisma.channel.findUnique({
       where: { lineId },
       include: {
         userChannels: {
@@ -135,26 +230,72 @@ router.get('/:lineId', async (req, res) => {
       }
     });
 
-    if (!channel) {
-      return res.status(404).json({
-        error: 'Channel not found',
-        message: 'The specified channel does not exist'
-      });
+    if (ownedChannel) {
+      const formattedChannel = {
+        id: ownedChannel.id,
+        lineId: ownedChannel.lineId,
+        name: ownedChannel.name,
+        pictureUrl: ownedChannel.pictureUrl,
+        status: ownedChannel.status,
+        isTracked: ownedChannel.userChannels[0]?.isTracked ?? true,
+        isOwner: true,
+        messageCount: ownedChannel._count.messages,
+        createdAt: ownedChannel.createdAt,
+        updatedAt: ownedChannel.updatedAt
+      };
+
+      return res.json({ channel: formattedChannel });
     }
 
-    const formattedChannel = {
-      id: channel.id,
-      lineId: channel.lineId,
-      name: channel.name,
-      pictureUrl: channel.pictureUrl,
-      status: channel.status,
-      isTracked: channel.userChannels[0]?.isTracked ?? true,
-      messageCount: channel._count.messages,
-      createdAt: channel.createdAt,
-      updatedAt: channel.updatedAt
-    };
+    // If not owned, check if it's shared with user
+    const sharedChannel = await prisma.channelShare.findFirst({
+      where: {
+        channelId: lineId,
+        sharedWithId: userId
+      },
+      include: {
+        channel: {
+          include: {
+            _count: {
+              select: { messages: true }
+            }
+          }
+        },
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            name: true
+          }
+        }
+      }
+    });
 
-    res.json({ channel: formattedChannel });
+    if (sharedChannel) {
+      const formattedChannel = {
+        id: sharedChannel.channel.id,
+        lineId: sharedChannel.channel.lineId,
+        name: sharedChannel.channel.name,
+        pictureUrl: sharedChannel.channel.pictureUrl,
+        status: sharedChannel.channel.status,
+        isTracked: true,
+        isOwner: false,
+        isShared: true,
+        sharedBy: sharedChannel.owner,
+        messageCount: sharedChannel.channel._count.messages,
+        createdAt: sharedChannel.channel.createdAt,
+        updatedAt: sharedChannel.channel.updatedAt,
+        sharedAt: sharedChannel.createdAt
+      };
+
+      return res.json({ channel: formattedChannel });
+    }
+
+    // Channel not found or not accessible
+    return res.status(404).json({
+      error: 'Channel not found',
+      message: 'The specified channel does not exist or you do not have access to it'
+    });
   } catch (error) {
     console.error('Get channel error:', error);
     res.status(500).json({

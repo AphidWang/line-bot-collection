@@ -183,6 +183,39 @@ const processLineEvent = async (event, webhookChannelId) => {
           status: 'active'
         }
       });
+    } else {
+      // TTL refresh for group info (name/pictureUrl)
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const lastUpdatedAt = group.updatedAt ? new Date(group.updatedAt).getTime() : 0;
+      if (Date.now() - lastUpdatedAt > ONE_DAY_MS) {
+        try {
+          if (isGroup) {
+            const groupInfo = await getGroupInfo(lineGroupId, webhookChannelId);
+            if (groupInfo) {
+              group = await prisma.group.update({
+                where: { id: group.id },
+                data: {
+                  name: groupInfo.name || group.name,
+                  pictureUrl: groupInfo.pictureUrl || group.pictureUrl
+                }
+              });
+            }
+          } else {
+            const userInfo = await getUserInfo(userId, webhookChannelId);
+            if (userInfo) {
+              group = await prisma.group.update({
+                where: { id: group.id },
+                data: {
+                  name: userInfo.name ? `DM - ${userInfo.name}` : group.name,
+                  pictureUrl: userInfo.avatar || group.pictureUrl
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Failed to refresh group info (TTL). Proceeding without update.', e);
+        }
+      }
     }
 
     // Create or update user
@@ -202,6 +235,26 @@ const processLineEvent = async (event, webhookChannelId) => {
           password: null // No password for Line users
         }
       });
+    } else {
+      // TTL refresh for user profile (name/avatar)
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const lastUpdatedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
+      if (Date.now() - lastUpdatedAt > ONE_DAY_MS) {
+        try {
+          const userInfo = await getUserInfo(userId, webhookChannelId);
+          if (userInfo) {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                name: userInfo.name || user.name,
+                avatar: userInfo.avatar || user.avatar
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('⚠️ Failed to refresh user profile (TTL). Proceeding without update.', e);
+        }
+      }
     }
 
     // Create message
