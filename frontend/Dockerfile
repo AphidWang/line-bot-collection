@@ -8,10 +8,10 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # 複製 package 檔案
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
-# 安裝依賴
-RUN pnpm install --frozen-lockfile
+# 安裝依賴 (不使用 frozen-lockfile，因為前端沒有獨立的 lockfile)
+RUN pnpm install
 
 # 複製原始碼
 COPY . .
@@ -29,10 +29,10 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # 複製 package 檔案
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
 # 只安裝生產依賴
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod
 
 # 複製建置結果
 COPY --from=builder /app/.next ./.next
