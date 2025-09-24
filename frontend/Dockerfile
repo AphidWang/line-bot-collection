@@ -36,7 +36,6 @@ RUN pnpm install --prod
 
 # 複製建置結果
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 
 # 建立非 root 使用者
 RUN addgroup --system --gid 1001 nodejs
