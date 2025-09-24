@@ -77,9 +77,9 @@ export default function MessageTable({ messages }: MessageTableProps) {
               </td>
               <td className="px-6 py-4 text-sm text-gray-900 max-w-md">
                 <div className="truncate flex items-center gap-2" title={message.message}>
-                  <span className="flex-1 truncate">{message.content}</span>
+                  <span className="flex-1 truncate">{message.message}</span>
                   {/* 下載/預覽：當內容看起來是附件占位符或包含 R2 key/url 時顯示 */}
-                  {isAttachmentLike(message.content) && (
+                  {isAttachmentLike(message.message) && (
                     <button
                       className="text-blue-600 hover:underline whitespace-nowrap"
                       onClick={() => openSignedUrl(String(message.id))}
