@@ -267,7 +267,7 @@ export default function Dashboard() {
 
     if (filters.groupId) {
       filtered = filtered.filter(msg => 
-        msg.group_id.includes(filters.groupId)
+        (msg.groupId || '').includes(filters.groupId)
       );
     }
 
@@ -358,8 +358,8 @@ export default function Dashboard() {
   };
 
   // 取得選中群組的訊息
-  const getChannelMessages = (channelId: string) => {
-    return messages.filter(m => m.group_id === channelId);
+  const getChannelMessages = (channelKey: string) => {
+    return messages.filter(m => (m.groupName || m.groupId || m.channelId) === channelKey);
   };
 
   // 根據頻道名稱找到對應的 channelId
@@ -677,14 +677,14 @@ export default function Dashboard() {
                           <div className="space-y-3 max-h-96 overflow-y-auto">
                             {getChannelMessages(channelId).map((message) => (
                               <div key={message.id} className="flex flex-col">
-                                <div className={`flex ${message.user_id === getCurrentUserEmail() ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`flex ${message.userName === getCurrentUserEmail() ? 'justify-end' : 'justify-start'}`}>
                                   <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                    message.user_id === getCurrentUserEmail() 
+                                    message.userName === getCurrentUserEmail() 
                                       ? 'bg-white border border-gray-300' 
-                                      : `${getUserColor(message.user_id)} text-white`
+                                      : `${getUserColor(message.userId || message.userName || '')} text-white`
                                   }`}>
                                     <div className="text-sm font-medium mb-1">
-                                      {message.user_id === getCurrentUserEmail() ? '我' : message.user_id}
+                                      {message.userName === getCurrentUserEmail() ? '我' : (message.userName || message.userId || '未知')}
                                     </div>
                                     <div className="text-sm">{message.message}</div>
                                   </div>
