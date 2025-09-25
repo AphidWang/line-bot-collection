@@ -690,7 +690,7 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                                 <div className={`text-xs text-gray-500 mt-1 ${
-                                  message.user_id === getCurrentUserEmail() ? 'text-right' : 'text-left'
+                                  message.userName === getCurrentUserEmail() ? 'text-right' : 'text-left'
                                 }`}>
                                   {new Date(message.timestamp).toLocaleDateString('zh-TW', {
                                     year: 'numeric',
