@@ -238,20 +238,24 @@ const processLineEvent = async (event, webhookChannelId) => {
         }
       });
     } else {
-      // TTL refresh for user profile (name/avatar)
-      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      // TTL refresh for user profile (name/avatar) — tighten to 5 minutes for fresher names
+      const PROFILE_REFRESH_MS = 5 * 60 * 1000;
       const lastUpdatedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
-      if (Date.now() - lastUpdatedAt > ONE_DAY_MS) {
+      if (Date.now() - lastUpdatedAt > PROFILE_REFRESH_MS) {
         try {
           const userInfo = await getUserInfo(userId, webhookChannelId);
           if (userInfo) {
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                name: userInfo.name || user.name,
-                avatar: userInfo.avatar || user.avatar
-              }
-            });
+            const nextName = userInfo.name || user.name;
+            const nextAvatar = userInfo.avatar || user.avatar;
+            if (nextName !== user.name || nextAvatar !== user.avatar) {
+              user = await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  name: nextName,
+                  avatar: nextAvatar
+                }
+              });
+            }
           }
         } catch (e) {
           console.warn('⚠️ Failed to refresh user profile (TTL). Proceeding without update.', e);
