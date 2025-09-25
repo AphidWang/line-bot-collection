@@ -228,6 +228,12 @@ const processLineEvent = async (event, webhookChannelId) => {
     if (!user) {
       // Try to get user info from Line API
       const userInfo = await getUserInfo(userId, webhookChannelId);
+      console.log('👤 Creating new user from LINE profile:', {
+        userId,
+        fetched: !!userInfo,
+        name: userInfo?.name,
+        avatar: userInfo?.avatar
+      });
       user = await prisma.user.create({
         data: {
           id: userId,
@@ -243,12 +249,25 @@ const processLineEvent = async (event, webhookChannelId) => {
       const lastUpdatedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
       const isPlaceholderName = !user.name || /^User\s/.test(user.name);
       if (isPlaceholderName || (Date.now() - lastUpdatedAt > PROFILE_REFRESH_MS)) {
+        console.log('🪪 User profile refresh check:', {
+          userId: user.id,
+          isPlaceholderName,
+          lastUpdatedAt: new Date(lastUpdatedAt).toISOString(),
+          reason: isPlaceholderName ? 'placeholder' : 'ttl-expired'
+        });
         try {
           const userInfo = await getUserInfo(userId, webhookChannelId);
           if (userInfo) {
             const nextName = userInfo.name || user.name;
             const nextAvatar = userInfo.avatar || user.avatar;
             if (nextName !== user.name || nextAvatar !== user.avatar) {
+              console.log('🔄 Updating user profile from LINE:', {
+                userId: user.id,
+                prevName: user.name,
+                nextName,
+                prevAvatar: user.avatar,
+                nextAvatar
+              });
               user = await prisma.user.update({
                 where: { id: user.id },
                 data: {
@@ -256,6 +275,8 @@ const processLineEvent = async (event, webhookChannelId) => {
                   avatar: nextAvatar
                 }
               });
+            } else {
+              console.log('ℹ️ User profile fetched but unchanged:', { userId: user.id, name: user.name });
             }
           }
         } catch (e) {

@@ -91,12 +91,14 @@ router.get('/', async (req, res) => {
       // 取該群所屬 channel 的 lineId 找 token
       const channel = await prisma.channel.findUnique({ where: { id: g.channelId }, select: { lineId: true } });
       const creds = await getCredentials(channel?.lineId);
+      console.log('🔎 Enriching last message user name from LINE for group:', { groupId: g.id, messageId: last.id, lineChannelId: channel?.lineId, hasToken: !!creds?.accessToken });
       const profile = await fetchUserProfileFromLine((await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } }))?.userId, creds?.accessToken);
       if (profile?.name) {
         // 更新 DB 使用者名稱，之後查詢就不會是 placeholder
         const uid = await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } });
         if (uid?.userId) {
           try {
+            console.log('📝 Updating DB user profile from group enrichment:', { userId: uid.userId, nextName: profile.name });
             await prisma.user.update({ where: { id: uid.userId }, data: { name: profile.name, avatar: profile.avatar || undefined } });
           } catch {}
         }
