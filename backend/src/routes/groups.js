@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
       where.channelId = internalChannelId;
     }
 
-    const groups = await prisma.group.findMany({
+    let groups = await prisma.group.findMany({
       where,
       include: {
         _count: {
@@ -63,6 +63,50 @@ router.get('/', async (req, res) => {
         updatedAt: 'desc'
       }
     });
+
+    // 補強最後訊息的使用者名稱（placeholder 或缺失時）
+    const credentialsByLineId = {};
+    async function getCredentials(lineId) {
+      if (!lineId) return null;
+      if (credentialsByLineId[lineId]) return credentialsByLineId[lineId];
+      const creds = await UserChannel.getChannelCredentials(lineId);
+      credentialsByLineId[lineId] = creds;
+      return creds;
+    }
+    async function fetchUserProfileFromLine(userId, accessToken) {
+      if (!accessToken) return null;
+      try {
+        const resp = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        return { name: data.displayName, avatar: data.pictureUrl };
+      } catch { return null; }
+    }
+
+    groups = await Promise.all(groups.map(async (g) => {
+      const last = g.messages?.[0];
+      if (!last || !/^User\s/.test(last.user?.name || '')) return g;
+      // 取該群所屬 channel 的 lineId 找 token
+      const channel = await prisma.channel.findUnique({ where: { id: g.channelId }, select: { lineId: true } });
+      const creds = await getCredentials(channel?.lineId);
+      const profile = await fetchUserProfileFromLine((await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } }))?.userId, creds?.accessToken);
+      if (profile?.name) {
+        // 更新 DB 使用者名稱，之後查詢就不會是 placeholder
+        const uid = await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } });
+        if (uid?.userId) {
+          try {
+            await prisma.user.update({ where: { id: uid.userId }, data: { name: profile.name, avatar: profile.avatar || undefined } });
+          } catch {}
+        }
+        return {
+          ...g,
+          messages: [{ ...last, user: { name: profile.name } }]
+        };
+      }
+      return g;
+    }));
 
     res.json({ groups });
   } catch (error) {

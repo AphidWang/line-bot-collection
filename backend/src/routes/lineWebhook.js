@@ -238,10 +238,11 @@ const processLineEvent = async (event, webhookChannelId) => {
         }
       });
     } else {
-      // TTL refresh for user profile (name/avatar) — tighten to 5 minutes for fresher names
-      const PROFILE_REFRESH_MS = 5 * 60 * 1000;
+      // TTL refresh for user profile (name/avatar) — 1 minute; always refresh if placeholder name
+      const PROFILE_REFRESH_MS = 60 * 1000;
       const lastUpdatedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
-      if (Date.now() - lastUpdatedAt > PROFILE_REFRESH_MS) {
+      const isPlaceholderName = !user.name || /^User\s/.test(user.name);
+      if (isPlaceholderName || (Date.now() - lastUpdatedAt > PROFILE_REFRESH_MS)) {
         try {
           const userInfo = await getUserInfo(userId, webhookChannelId);
           if (userInfo) {
@@ -258,7 +259,7 @@ const processLineEvent = async (event, webhookChannelId) => {
             }
           }
         } catch (e) {
-          console.warn('⚠️ Failed to refresh user profile (TTL). Proceeding without update.', e);
+          console.warn('⚠️ Failed to refresh user profile (TTL/placeholder). Proceeding without update.', e);
         }
       }
     }
