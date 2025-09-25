@@ -105,13 +105,15 @@ const GroupList: FC<GroupListProps> = ({ selectedChannelId, onGroupSelect, selec
     }
   }, [selectedChannelId, refreshTick]);
 
-  // 輪詢更新群組列表與未讀，避免名字/最後訊息不同步
+  // 輪詢更新群組列表與未讀，避免名字/最後訊息不同步（每 5 分鐘，頁籤非可見則暫停）
   useEffect(() => {
     if (!selectedChannelId) return;
-    const interval = setInterval(() => {
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
       fetchGroups();
       fetchUnreadCounts();
-    }, 5000);
+    };
+    const interval = setInterval(tick, 300000);
     return () => clearInterval(interval);
   }, [selectedChannelId]);
 
