@@ -16,8 +16,10 @@ import ChatInterface from './ChatInterface';
 
 interface Message {
   id: number;
-  group_id: string;
-  user_id: string;
+  groupId?: string;
+  groupName?: string;
+  userId?: string;
+  userName?: string;
   timestamp: string;
   message: string;
   channelId?: string;
@@ -168,8 +170,10 @@ export default function Dashboard() {
         // 轉換 API 回應格式到組件期望的格式
         const formattedMessages = data.messages.map((msg: any) => ({
           id: msg.id,
-          group_id: msg.channel?.name || msg.channelId,
-          user_id: msg.user?.name || msg.userId,
+          groupId: msg.groupId || msg.group?.id,
+          groupName: msg.group?.name || msg.groupName,
+          userId: msg.userId || msg.user?.id,
+          userName: msg.user?.name || msg.userName,
           timestamp: msg.timestamp,
           message: msg.content,
           channelId: msg.channelId
@@ -342,7 +346,7 @@ export default function Dashboard() {
 
   // 取得所有群組
   const getChannels = () => {
-    const channels = new Set(messages.map(m => m.group_id));
+    const channels = new Set(messages.map(m => m.groupName || m.groupId || m.channelId));
     return Array.from(channels);
   };
 
@@ -458,7 +462,7 @@ export default function Dashboard() {
               <MessageSquare className="h-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{new Set(getVisibleMessages().map(m => m.group_id)).size}</div>
+              <div className="text-2xl font-bold">{new Set(getVisibleMessages().map(m => m.groupId).filter(Boolean)).size}</div>
             </CardContent>
           </Card>
           
@@ -468,7 +472,7 @@ export default function Dashboard() {
               <MessageSquare className="h-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{new Set(getVisibleMessages().map(m => m.user_id)).size}</div>
+              <div className="text-2xl font-bold">{new Set(getVisibleMessages().map(m => m.userId).filter(Boolean)).size}</div>
             </CardContent>
           </Card>
         </div>

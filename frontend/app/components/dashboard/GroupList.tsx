@@ -105,6 +105,16 @@ const GroupList: FC<GroupListProps> = ({ selectedChannelId, onGroupSelect, selec
     }
   }, [selectedChannelId, refreshTick]);
 
+  // 輪詢更新群組列表與未讀，避免名字/最後訊息不同步
+  useEffect(() => {
+    if (!selectedChannelId) return;
+    const interval = setInterval(() => {
+      fetchGroups();
+      fetchUnreadCounts();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedChannelId]);
+
   const getUnreadCount = (groupId: string) => {
     const unread = unreadCounts.find(u => u.groupId === groupId);
     return unread ? unread.unreadCount : 0;
