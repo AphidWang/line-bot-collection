@@ -20,6 +20,7 @@ interface Message {
   user_id: string;
   timestamp: string;
   message: string;
+  channelId?: string;
 }
 
 interface Group {
@@ -128,6 +129,19 @@ export default function Dashboard() {
     applyFilters();
   }, [messages, filters]);
 
+  // 當選擇的頻道改變時，寫入 localStorage
+  useEffect(() => {
+    try {
+      if (selectedChannel) {
+        localStorage.setItem('selected_channel', selectedChannel);
+      } else {
+        localStorage.removeItem('selected_channel');
+      }
+    } catch (e) {
+      // 忽略 storage 錯誤
+    }
+  }, [selectedChannel]);
+
   const fetchMessages = async () => {
     setIsLoading(true);
     try {
@@ -157,7 +171,8 @@ export default function Dashboard() {
           group_id: msg.channel?.name || msg.channelId,
           user_id: msg.user?.name || msg.userId,
           timestamp: msg.timestamp,
-          message: msg.content
+          message: msg.content,
+          channelId: msg.channelId
         }));
         setMessages(formattedMessages);
       } else {
@@ -205,7 +220,27 @@ export default function Dashboard() {
         sharedBy: c.sharedBy,
       }));
 
-      setUserChannels([...(owned || []), ...shared]);
+      const allChannels = [...(owned || []), ...shared];
+      setUserChannels(allChannels);
+
+      // 初始化選擇：優先使用 localStorage，其次預設第一個
+      try {
+        const saved = localStorage.getItem('selected_channel');
+        const hasSaved = saved && allChannels.some((c: any) => c.channelId === saved);
+        const first = allChannels.length > 0 ? allChannels[0].channelId : null;
+
+        // 僅在目前未選擇或原本選擇不存在於新清單時才設置
+        if (!selectedChannel || (selectedChannel && !allChannels.some((c: any) => c.channelId === selectedChannel))) {
+          const next = (hasSaved ? saved : first) as string | null;
+          if (next) {
+            setSelectedChannel(next);
+          } else {
+            setSelectedChannel(null);
+          }
+        }
+      } catch (e) {
+        // 忽略 storage 錯誤
+      }
     } catch (error) {
       console.error('Error fetching user channels:', error);
     }
@@ -311,6 +346,13 @@ export default function Dashboard() {
     return Array.from(channels);
   };
 
+  // 依據目前有權限觀看的範圍過濾訊息
+  const getVisibleMessages = () => {
+    if (selectedChannel) return messages;
+    const allowed = new Set((userChannels || []).map((c: any) => c.channelId));
+    return messages.filter(m => !m.channelId || allowed.has(m.channelId));
+  };
+
   // 取得選中群組的訊息
   const getChannelMessages = (channelId: string) => {
     return messages.filter(m => m.group_id === channelId);
@@ -406,7 +448,7 @@ export default function Dashboard() {
               <MessageSquare className="h-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{messages.length}</div>
+              <div className="text-2xl font-bold">{getVisibleMessages().length}</div>
             </CardContent>
           </Card>
           
@@ -416,9 +458,7 @@ export default function Dashboard() {
               <MessageSquare className="h-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {new Set(messages.map(m => m.group_id)).size}
-              </div>
+              <div className="text-2xl font-bold">{new Set(getVisibleMessages().map(m => m.group_id)).size}</div>
             </CardContent>
           </Card>
           
@@ -428,9 +468,7 @@ export default function Dashboard() {
               <MessageSquare className="h-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {new Set(messages.map(m => m.user_id)).size}
-              </div>
+              <div className="text-2xl font-bold">{new Set(getVisibleMessages().map(m => m.user_id)).size}</div>
             </CardContent>
           </Card>
         </div>
