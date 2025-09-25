@@ -346,8 +346,8 @@ export default function Dashboard() {
 
   // 取得所有群組
   const getChannels = () => {
-    const channels = new Set(messages.map(m => m.groupName || m.groupId || m.channelId));
-    return Array.from(channels);
+    const channels = new Set((messages || []).map(m => m.groupName || m.groupId || m.channelId));
+    return (Array.from(channels).filter(Boolean) as string[]);
   };
 
   // 依據目前有權限觀看的範圍過濾訊息
