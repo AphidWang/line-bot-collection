@@ -93,6 +93,9 @@ router.get('/', async (req, res) => {
       const creds = await getCredentials(channel?.lineId);
       console.log('🔎 Enriching last message user name from LINE for group:', { groupId: g.id, messageId: last.id, lineChannelId: channel?.lineId, hasToken: !!creds?.accessToken });
       const profile = await fetchUserProfileFromLine((await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } }))?.userId, creds?.accessToken);
+      if (!profile) {
+        console.warn('LINE profile fetch for group enrichment failed or empty', { groupId: g.id, messageId: last.id, hasToken: !!creds?.accessToken });
+      }
       if (profile?.name) {
         // 更新 DB 使用者名稱，之後查詢就不會是 placeholder
         const uid = await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } });

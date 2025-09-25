@@ -436,6 +436,9 @@ const getUserInfo = async (userId, channelId) => {
         name: data.displayName,
         avatar: data.pictureUrl
       };
+    } else {
+      const text = await response.text().catch(() => '');
+      console.warn('LINE profile fetch failed', { status: response.status, statusText: response.statusText, body: text?.slice?.(0, 256) });
     }
   } catch (error) {
     console.error('Error fetching user info:', error);
