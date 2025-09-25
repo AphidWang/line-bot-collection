@@ -149,6 +149,32 @@ const GroupList: FC<GroupListProps> = ({ selectedChannelId, onGroupSelect, selec
     return content.substring(0, maxLength) + '...';
   };
 
+  const renderLastMessage = (lastMessage?: { content: string; type: string; user: { name: string }; timestamp: string }) => {
+    if (!lastMessage) return null;
+    const isUrl = (() => {
+      try { const u = new URL(lastMessage.content); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; }
+    })();
+    const label = lastMessage.type === 'image' ? '[圖片]'
+      : lastMessage.type === 'video' ? '[影片]'
+      : lastMessage.type === 'audio' ? '[語音]'
+      : lastMessage.type === 'file' ? '[檔案]'
+      : undefined;
+    if (label || isUrl) {
+      return (
+        <p className="text-sm text-gray-600 truncate">
+          <span className="font-medium">{lastMessage.user.name}:</span>{' '}
+          <span>{label || '[附件]'}</span>
+        </p>
+      );
+    }
+    return (
+      <p className="text-sm text-gray-600 truncate">
+        <span className="font-medium">{lastMessage.user.name}:</span>{' '}
+        {truncateMessage(lastMessage.content)}
+      </p>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -226,10 +252,7 @@ const GroupList: FC<GroupListProps> = ({ selectedChannelId, onGroupSelect, selec
 
                     {lastMessage && (
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-600 truncate">
-                          <span className="font-medium">{lastMessage.user.name}:</span>{' '}
-                          {truncateMessage(lastMessage.content)}
-                        </p>
+                        {renderLastMessage(lastMessage)}
                         {unreadCount > 0 && (
                           <div className="flex-shrink-0 ml-2">
                             <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">

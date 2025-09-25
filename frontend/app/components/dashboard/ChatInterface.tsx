@@ -141,6 +141,16 @@ const ChatInterface: FC<ChatInterfaceProps> = ({ group, onMarkAsRead, refreshTic
     return /\[(圖片|影片|語音|檔案)\]/.test(text || '');
   };
 
+  const isProbablyUrl = (text?: string) => {
+    if (!text) return false;
+    try {
+      const u = new URL(text);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const openSignedUrl = async (id: string) => {
     try {
       const token = localStorage.getItem('access_token');
@@ -299,16 +309,29 @@ const ChatInterface: FC<ChatInterfaceProps> = ({ group, onMarkAsRead, refreshTic
                     <div className={`ml-8 ${isConsecutive ? 'mt-0' : ''}`}>
                       <div className="flex items-center space-x-2">
                         {getMessageIcon(message.type)}
-                        <span className="text-gray-800 break-words">{message.content}</span>
-                        {isAttachmentLike(message.content, message.type) && (
-                          <button
-                            className="text-blue-600 hover:underline whitespace-nowrap text-sm"
-                            onClick={() => openSignedUrl(String(message.id))}
-                          >
-                            下載/預覽
-                          </button>
+                        {!isAttachmentLike(message.content, message.type) ? (
+                          <span className="text-gray-800 break-words">{message.content}</span>
+                        ) : (
+                          <>
+                            <span className="text-gray-600 text-sm">
+                              {message.type === 'image' && '[圖片]'}
+                              {message.type === 'video' && '[影片]'}
+                              {message.type === 'audio' && '[語音]'}
+                              {message.type === 'file' && '[檔案]'}
+                              {!message.type && '[附件]'}
+                            </span>
+                            <button
+                              className="text-blue-600 hover:underline whitespace-nowrap text-sm"
+                              onClick={() => openSignedUrl(String(message.id))}
+                            >
+                              {message.type === 'image' || message.type === 'video' ? '預覽' : '下載'}
+                            </button>
+                          </>
                         )}
                       </div>
+                      {isAttachmentLike(message.content, message.type) && isProbablyUrl(message.content) && (
+                        <div className="text-xs text-gray-400 mt-1">(已隱藏原始連結)</div>
+                      )}
                     </div>
                   </div>
                 </div>
