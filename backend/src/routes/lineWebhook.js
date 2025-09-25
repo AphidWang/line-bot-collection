@@ -238,8 +238,8 @@ const processLineEvent = async (event, webhookChannelId) => {
         }
       });
     } else {
-      // TTL refresh for user profile (name/avatar) — 1 minute; always refresh if placeholder name
-      const PROFILE_REFRESH_MS = 60 * 1000;
+      // TTL refresh for user profile (name/avatar) — one day; always refresh if placeholder name
+      const PROFILE_REFRESH_MS = 24 * 60 * 60 * 1000;
       const lastUpdatedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
       const isPlaceholderName = !user.name || /^User\s/.test(user.name);
       if (isPlaceholderName || (Date.now() - lastUpdatedAt > PROFILE_REFRESH_MS)) {
