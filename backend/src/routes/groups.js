@@ -66,6 +66,7 @@ router.get('/', async (req, res) => {
 
     // 補強最後訊息的使用者名稱（placeholder 或缺失時）
     const credentialsByLineId = {};
+    const enrichmentCache = new Map(); // 快取已查詢過的使用者
     async function getCredentials(lineId) {
       if (!lineId) return null;
       if (credentialsByLineId[lineId]) return credentialsByLineId[lineId];
@@ -88,13 +89,27 @@ router.get('/', async (req, res) => {
     groups = await Promise.all(groups.map(async (g) => {
       const last = g.messages?.[0];
       if (!last || !/^User\s/.test(last.user?.name || '')) return g;
+      
+      // 檢查快取，避免重複查詢
+      const userId = (await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } }))?.userId;
+      if (!userId) return g;
+      
+      const cacheKey = `${userId}_${g.channelId}`;
+      if (enrichmentCache.has(cacheKey)) {
+        const cached = enrichmentCache.get(cacheKey);
+        if (cached === 'failed') return g; // 之前查詢失敗，跳過
+        return { ...g, messages: [{ ...last, user: { name: cached } }] };
+      }
+      
       // 取該群所屬 channel 的 lineId 找 token
       const channel = await prisma.channel.findUnique({ where: { id: g.channelId }, select: { lineId: true } });
       const creds = await getCredentials(channel?.lineId);
       console.log('🔎 Enriching last message user name from LINE for group:', { groupId: g.id, messageId: last.id, lineChannelId: channel?.lineId, hasToken: !!creds?.accessToken });
-      const profile = await fetchUserProfileFromLine((await prisma.message.findUnique({ where: { id: last.id }, select: { userId: true } }))?.userId, creds?.accessToken);
+      const profile = await fetchUserProfileFromLine(userId, creds?.accessToken);
       if (!profile) {
         console.warn('LINE profile fetch for group enrichment failed or empty', { groupId: g.id, messageId: last.id, hasToken: !!creds?.accessToken });
+        enrichmentCache.set(cacheKey, 'failed'); // 快取失敗結果
+        return g;
       }
       if (profile?.name) {
         // 更新 DB 使用者名稱，之後查詢就不會是 placeholder
@@ -105,11 +120,13 @@ router.get('/', async (req, res) => {
             await prisma.user.update({ where: { id: uid.userId }, data: { name: profile.name, avatar: profile.avatar || undefined } });
           } catch {}
         }
+        enrichmentCache.set(cacheKey, profile.name); // 快取成功結果
         return {
           ...g,
           messages: [{ ...last, user: { name: profile.name } }]
         };
       }
+      enrichmentCache.set(cacheKey, 'failed'); // 快取失敗結果
       return g;
     }));
 
