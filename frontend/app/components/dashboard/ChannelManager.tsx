@@ -545,11 +545,25 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
             <CardHeader>
               <CardTitle>頻道設定</CardTitle>
               <CardDescription>
-                更新 Access Token
+                更新頻道憑證
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Channel ID
+                  </label>
+                  <Input
+                    value={showSettingsForm}
+                    disabled
+                    className="bg-gray-100 text-gray-600"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Channel ID 無法修改
+                  </p>
+                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     新的 Access Token
@@ -562,9 +576,10 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    更新後會立即生效，所有 API 請求將使用新的 token
+                    請前往 <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LINE 開發者後台</a> 獲取 Access Token
                   </p>
                 </div>
+                
                 <div className="flex space-x-2">
                   <Button
                     onClick={() => handleUpdateToken(showSettingsForm)}
