@@ -51,11 +51,25 @@ class UserChannel {
     };
   }
 
-  // 解密函數（支援多版本）
-  static decrypt(encryptedData) {
+  // 解密函數（支援多版本 + 向後相容）
+  static decrypt(encryptedData, userKey = null) {
     const algorithm = 'aes-256-cbc';
     const iv = Buffer.from(encryptedData.iv, 'hex');
-    const version = encryptedData.version || '1'; // 預設版本 1
+    
+    // 如果有 userKey，先嘗試舊方法（向後相容）
+    if (userKey) {
+      try {
+        const decipher = crypto.createDecipheriv(algorithm, Buffer.from(userKey, 'hex'), iv);
+        let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+      } catch (error) {
+        console.log('Old encryption method failed, trying new method...');
+      }
+    }
+    
+    // 嘗試新方法（環境變數密鑰）
+    const version = encryptedData.version || '1';
     
     try {
       const masterKey = this.getMasterKey(version);
@@ -134,8 +148,8 @@ class UserChannel {
     
     return {
       channelId: channel.channelId,
-      accessToken: this.decrypt(JSON.parse(channel.accessToken)),
-      channelSecret: this.decrypt(JSON.parse(channel.channelSecret))
+      accessToken: this.decrypt(JSON.parse(channel.accessToken), channel.userKey),
+      channelSecret: this.decrypt(JSON.parse(channel.channelSecret), channel.userKey)
     };
   }
 
