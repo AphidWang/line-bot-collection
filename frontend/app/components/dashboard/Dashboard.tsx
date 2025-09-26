@@ -742,6 +742,13 @@ export default function Dashboard() {
                   setSelectedChannel(channelId);
                   setShowChannelManager(false);
                 }}
+                onChannelAdded={(channelId) => {
+                  // 新增頻道後自動選擇並關閉 Modal
+                  setSelectedChannel(channelId);
+                  setShowChannelManager(false);
+                  // 重新獲取頻道列表
+                  fetchUserChannels();
+                }}
               />
             </div>
           </div>

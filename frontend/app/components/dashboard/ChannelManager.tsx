@@ -25,9 +25,10 @@ interface UserChannel {
 
 interface ChannelManagerProps {
   onChannelSelect?: (channelId: string) => void;
+  onChannelAdded?: (channelId: string) => void;
 }
 
-export default function ChannelManager({ onChannelSelect }: ChannelManagerProps) {
+export default function ChannelManager({ onChannelSelect, onChannelAdded }: ChannelManagerProps) {
   const [channels, setChannels] = useState<UserChannel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -64,9 +65,15 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
 
     try {
       await userChannelsAPI.create(newChannel);
+      const addedChannelId = newChannel.channelId;
       setNewChannel({ channelId: '', accessToken: '', channelSecret: '', alias: '' });
       setShowAddForm(false);
       fetchChannels();
+      
+      // 通知父組件有新頻道添加
+      if (onChannelAdded) {
+        onChannelAdded(addedChannelId);
+      }
     } catch (error: any) {
       console.error('Failed to add channel:', error);
       alert(`添加頻道失敗${error?.message ? `: ${error.message}` : ''}`);
