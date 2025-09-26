@@ -274,19 +274,6 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Access Token
-                </label>
-                <Input
-                  type="password"
-                  value={newChannel.accessToken}
-                  onChange={(e) => setNewChannel(prev => ({ ...prev, accessToken: e.target.value }))}
-                  placeholder="輸入 LINE Access Token"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Channel Secret
                 </label>
                 <Input
@@ -296,6 +283,22 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                   placeholder="輸入 LINE Channel Secret"
                   required
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Access Token
+                </label>
+                <Input
+                  type="password"
+                  value={newChannel.accessToken}
+                  onChange={(e) => setNewChannel(prev => ({ ...prev, accessToken: e.target.value }))}
+                  placeholder="輸入 LINE Access Token"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  請前往 <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LINE 開發者後台</a> 獲取 Access Token
+                </p>
               </div>
 
               <div>
