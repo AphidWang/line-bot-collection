@@ -381,6 +381,14 @@ export const userChannelsAPI = {
     if (!response.ok) throw new Error('更新頻道別名失敗');
     return response.json();
   },
+  updateToken: async (channelId: string, accessToken: string) => {
+    const response = await apiRequest(API_ENDPOINTS.USER_CHANNELS.ALIAS(channelId), {
+      method: 'PATCH',
+      body: JSON.stringify({ accessToken }),
+    });
+    if (!response.ok) throw new Error('更新 Access Token 失敗');
+    return response.json();
+  },
 };
 
 // 分享相關 API

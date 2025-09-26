@@ -141,9 +141,10 @@ router.patch('/:channelId/status', async (req, res) => {
   }
 });
 
-// 更新頻道別名
+// 更新頻道別名或 Access Token
 router.patch('/:channelId/alias', [
-  body('alias').optional().isString().isLength({ max: 80 }).withMessage('Alias must be a string up to 80 chars')
+  body('alias').optional().isString().isLength({ max: 80 }).withMessage('Alias must be a string up to 80 chars'),
+  body('accessToken').optional().isString().isLength({ min: 1 }).withMessage('Access Token must be a non-empty string')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -153,22 +154,34 @@ router.patch('/:channelId/alias', [
 
     const userId = req.user.id;
     const { channelId } = req.params;
-    const { alias } = req.body;
+    const { accessToken, alias } = req.body;
 
-    const updated = await UserChannel.updateAlias(userId, channelId, alias ?? null);
-
-    res.json({
-      success: true,
-      message: 'Channel alias updated',
-      channel: {
-        id: updated.id,
-        channelId: updated.channelId,
-        alias: updated.alias
-      }
-    });
+    if (accessToken) {
+      const updated = await UserChannel.updateAccessToken(userId, channelId, accessToken);
+      res.json({
+        success: true,
+        message: 'Access Token updated',
+        channel: {
+          id: updated.id,
+          channelId: updated.channelId
+        }
+      });
+    } else {
+      // 如果沒有 accessToken，則更新別名
+      const updated = await UserChannel.updateAlias(userId, channelId, alias ?? null);
+      res.json({
+        success: true,
+        message: 'Channel alias updated',
+        channel: {
+          id: updated.id,
+          channelId: updated.channelId,
+          alias: updated.alias
+        }
+      });
+    }
   } catch (error) {
-    console.error('Update channel alias error:', error);
-    res.status(500).json({ success: false, message: 'Failed to update channel alias' });
+    console.error('Update channel error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update channel' });
   }
 });
 

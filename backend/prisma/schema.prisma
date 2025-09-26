@@ -105,7 +105,6 @@ model UserChannel {
   accessToken   String?
   channelSecret String?
   status        String   @default("active")
-  userKey       String?
   webhookUrl    String?
   channel       Channel  @relation(fields: [channelId], references: [lineId], onDelete: Cascade)
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)

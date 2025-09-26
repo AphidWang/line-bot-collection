@@ -35,6 +35,8 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
   const [shareEmail, setShareEmail] = useState('');
   const [showSharesList, setShowSharesList] = useState<string | null>(null);
   const [shares, setShares] = useState<any[]>([]);
+  const [showSettingsForm, setShowSettingsForm] = useState<string | null>(null);
+  const [settingsToken, setSettingsToken] = useState('');
   const [newChannel, setNewChannel] = useState({
     channelId: '',
     accessToken: '',
@@ -105,6 +107,25 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
     } catch (error) {
       console.error('Failed to update alias:', error);
       alert('更新別名失敗');
+    }
+  };
+
+  // 更新 Access Token
+  const handleUpdateToken = async (channelId: string) => {
+    if (!settingsToken.trim()) {
+      alert('請輸入新的 Access Token');
+      return;
+    }
+
+    try {
+      await userChannelsAPI.updateToken(channelId, settingsToken);
+      alert('Access Token 更新成功');
+      setSettingsToken('');
+      setShowSettingsForm(null);
+      fetchChannels();
+    } catch (error: any) {
+      console.error('Failed to update token:', error);
+      alert(`更新 Access Token 失敗${error?.message ? `: ${error.message}` : ''}`);
     }
   };
 
@@ -367,6 +388,14 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => setShowSettingsForm(channel.channelId)}
+                    >
+                      <Settings className="h-4 w-4 mr-1" />
+                      設定
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleUpdateAlias(channel.channelId)}
                     >
                       設定別名
@@ -495,6 +524,56 @@ export default function ChannelManager({ onChannelSelect }: ChannelManagerProps)
                     onClick={() => {
                       setShowShareForm(null);
                       setShareEmail('');
+                    }}
+                  >
+                    取消
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 設定 Modal */}
+      {showSettingsForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>頻道設定</CardTitle>
+              <CardDescription>
+                更新 Access Token
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    新的 Access Token
+                  </label>
+                  <Input
+                    type="password"
+                    value={settingsToken}
+                    onChange={(e) => setSettingsToken(e.target.value)}
+                    placeholder="輸入新的 LINE Access Token"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    更新後會立即生效，所有 API 請求將使用新的 token
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => handleUpdateToken(showSettingsForm)}
+                    disabled={!settingsToken.trim()}
+                  >
+                    更新 Token
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSettingsForm(null);
+                      setSettingsToken('');
                     }}
                   >
                     取消
