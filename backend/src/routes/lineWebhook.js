@@ -227,7 +227,7 @@ const processLineEvent = async (event, webhookChannelId) => {
 
     if (!user) {
       // Try to get user info from Line API
-      const userInfo = await getUserInfo(userId, webhookChannelId);
+      const userInfo = await getUserInfo(userId, webhookChannelId, isGroup ? lineGroupId : null);
       console.log('👤 Creating new user from LINE profile:', {
         userId,
         fetched: !!userInfo,
@@ -412,7 +412,7 @@ const getGroupInfo = async (groupId, channelId) => {
 };
 
 // Get user info from Line API
-const getUserInfo = async (userId, channelId) => {
+const getUserInfo = async (userId, channelId, groupId = null) => {
   try {
     // Get channel credentials
     const UserChannel = require('../models/UserChannel');
@@ -423,7 +423,14 @@ const getUserInfo = async (userId, channelId) => {
       return null;
     }
 
-    const response = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
+    console.log('🔍 Fetching user profile from LINE API:', { userId, channelId, groupId, hasToken: !!credentials.accessToken });
+    
+    // Use group member endpoint if groupId is provided, otherwise use profile endpoint
+    const url = groupId 
+      ? `https://api.line.me/v2/bot/group/${groupId}/member/${userId}`
+      : `https://api.line.me/v2/bot/profile/${userId}`;
+    
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${credentials.accessToken}`,
         'Content-Type': 'application/json'
@@ -438,7 +445,11 @@ const getUserInfo = async (userId, channelId) => {
       };
     } else {
       const text = await response.text().catch(() => '');
-      console.warn('LINE profile fetch failed', { status: response.status, statusText: response.statusText, body: text?.slice?.(0, 256) });
+      if (response.status === 404) {
+        console.warn('LINE profile not found (user may not be in group or has left)', { userId, status: response.status });
+      } else {
+        console.warn('LINE profile fetch failed', { status: response.status, statusText: response.statusText, body: text?.slice?.(0, 256) });
+      }
     }
   } catch (error) {
     console.error('Error fetching user info:', error);

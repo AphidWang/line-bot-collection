@@ -74,10 +74,15 @@ router.get('/', async (req, res) => {
       credentialsByLineId[lineId] = creds;
       return creds;
     }
-    async function fetchUserProfileFromLine(userId, accessToken) {
+    async function fetchUserProfileFromLine(userId, accessToken, groupId = null) {
       if (!accessToken) return null;
       try {
-        const resp = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
+        // Use group member endpoint if groupId is provided, otherwise use profile endpoint
+        const url = groupId 
+          ? `https://api.line.me/v2/bot/group/${groupId}/member/${userId}`
+          : `https://api.line.me/v2/bot/profile/${userId}`;
+        
+        const resp = await fetch(url, {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         if (!resp.ok) return null;
@@ -105,7 +110,7 @@ router.get('/', async (req, res) => {
       const channel = await prisma.channel.findUnique({ where: { id: g.channelId }, select: { lineId: true } });
       const creds = await getCredentials(channel?.lineId);
       console.log('🔎 Enriching last message user name from LINE for group:', { groupId: g.id, messageId: last.id, lineChannelId: channel?.lineId, hasToken: !!creds?.accessToken });
-      const profile = await fetchUserProfileFromLine(userId, creds?.accessToken);
+      const profile = await fetchUserProfileFromLine(userId, creds?.accessToken, g.lineId);
       if (!profile) {
         console.warn('LINE profile fetch for group enrichment failed or empty', { groupId: g.id, messageId: last.id, hasToken: !!creds?.accessToken });
         enrichmentCache.set(cacheKey, 'failed'); // 快取失敗結果
@@ -211,7 +216,9 @@ router.get('/:groupId/messages', [
     async function fetchUserProfileFromLine(userId) {
       if (!credentials?.accessToken) return null;
       try {
-        const resp = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
+        // Use group member endpoint for group messages
+        const url = `https://api.line.me/v2/bot/group/${group.lineId}/member/${userId}`;
+        const resp = await fetch(url, {
           headers: { Authorization: `Bearer ${credentials.accessToken}` }
         });
         if (!resp.ok) return null;
