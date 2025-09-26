@@ -103,19 +103,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, async () => {
-  try {
-    // 同步資料庫 schema
-    const { execSync } = require('child_process');
-    console.log('🗄️ Syncing database schema...');
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
-    console.log('✅ Schema sync completed');
-  } catch (error) {
-    console.error('⚠️ Schema sync failed:', error.message);
-    console.error('⚠️ Full error:', error);
-    console.log('ℹ️ Continuing with server startup...');
-  }
-  
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔗 Health check: /health`);
