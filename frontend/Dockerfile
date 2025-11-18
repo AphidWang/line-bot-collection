@@ -40,7 +40,9 @@ EXPOSE 3000
 
 # 設定環境變數
 ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
 # PORT 由 Zeabur 提供，不在此設定
 
 # 啟動應用程式（standalone 模式）
+# Next.js standalone 模式的 server.js 會自動讀取 PORT 環境變數
 CMD ["node", "server.js"]
